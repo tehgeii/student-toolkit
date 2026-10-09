@@ -110,12 +110,10 @@ GitHub Actions signs releases with the repository secrets `ST_KEYSTORE_BASE64` (
 `ST_KEYSTORE_PASSWORD`, `ST_KEY_ALIAS` and `ST_KEY_PASSWORD`. To publish a new version:
 
 1. Bump `appVersionName` / `appVersionCode` in `app/build.gradle.kts` and push to `main`.
-2. Tag the commit with the same version and push the tag:
-   ```bash
-   git tag v1.0.0 && git push origin v1.0.0
-   ```
-3. The workflow checks that the tag matches `appVersionName`, builds and verifies the signed APK, and creates the
-   GitHub Release with `StudentToolkit-v1.0.0.apk` and its SHA-256.
+2. On GitHub open **Releases → Draft a new release**, type the tag `v1.0.0` (*Create new tag on publish*, target `main`)
+   and publish. Pushing the tag from the command line (`git tag v1.0.0 && git push origin v1.0.0`) works too.
+3. The workflow checks that the tag matches `appVersionName`, builds and verifies the signed APK, and attaches
+   `StudentToolkit-v1.0.0.apk` and its SHA-256 to the GitHub Release.
 
 Keep a private backup of the keystore and its passwords: every update must be signed with the same key.
 
