@@ -9,6 +9,11 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Existing release tag (e.g. v0.9.0) to build and attach a signed APK to"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -49,21 +54,25 @@ jobs:
 
   release:
     name: Signed release APK
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != ''
     needs: build
     runs-on: ubuntu-latest
     concurrency:
-      group: release-${{ github.ref }}
+      group: release-${{ inputs.release_tag || github.ref_name }}
     permissions:
       contents: write
+    env:
+      TAG: ${{ inputs.release_tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
 
       - name: Check tag matches app version
         run: |
           VERSION=$(sed -n 's/^val appVersionName = "\(.*\)"$/\1/p' app/build.gradle.kts)
-          if [ "v$VERSION" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match appVersionName $VERSION in app/build.gradle.kts"
+          if [ "v$VERSION" != "$TAG" ]; then
+            echo "::error::Tag $TAG does not match appVersionName $VERSION in app/build.gradle.kts"
             exit 1
           fi
 
@@ -95,10 +104,13 @@ jobs:
 
       - name: Verify signature and prepare release files
         run: |
+          set -euo pipefail
           APK=$(ls app/build/outputs/apk/release/*-release.apk)
-          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
-          "$APKSIGNER" verify --print-certs "$APK" | grep "Signer #1 certificate SHA-256"
-          NAME="StudentToolkit-$GITHUB_REF_NAME.apk"
+          BUILD_TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)
+          echo "Verifying $APK with ${BUILD_TOOLS}apksigner"
+          # apksigner exits non-zero if the APK is unsigned or the signature is invalid.
+          "${BUILD_TOOLS}apksigner" verify --print-certs "$APK"
+          NAME="StudentToolkit-$TAG.apk"
           mkdir -p dist
           cp "$APK" "dist/$NAME"
           (cd dist && sha256sum "$NAME" > "$NAME.sha256")
@@ -114,7 +126,7 @@ jobs:
             echo "2. Buka file-nya. Jika diminta, izinkan **Install unknown apps** untuk browser / file manager."
             echo "3. Pilih **Install**. Versi berikutnya bisa langsung meng-update tanpa uninstall."
             echo
-            case "$GITHUB_REF_NAME" in
+            case "$TAG" in
               v0.*) echo "> Versi 0.x = beta: fitur MVP sudah lengkap, tapi belum lolos pengujian di berbagai perangkat sungguhan." ; echo ;;
             esac
             echo "SHA-256: \`$SHA\`"
@@ -123,10 +135,11 @@ jobs:
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          name: Student Toolkit ${{ github.ref_name }}
+          tag_name: ${{ env.TAG }}
+          name: Student Toolkit ${{ env.TAG }}
           body_path: dist/notes.md
           files: |
-            dist/StudentToolkit-${{ github.ref_name }}.apk
-            dist/StudentToolkit-${{ github.ref_name }}.apk.sha256
+            dist/StudentToolkit-${{ env.TAG }}.apk
+            dist/StudentToolkit-${{ env.TAG }}.apk.sha256
           fail_on_unmatched_files: true
           make_latest: "true"
