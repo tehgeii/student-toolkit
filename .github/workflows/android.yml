@@ -54,6 +54,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Check tag matches app version
+        run: |
+          VERSION=$(sed -n 's/^val appVersionName = "\(.*\)"$/\1/p' app/build.gradle.kts)
+          if [ "v$VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match appVersionName $VERSION in app/build.gradle.kts"
+            exit 1
+          fi
+
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -80,8 +88,40 @@ jobs:
           ST_KEY_PASSWORD: ${{ secrets.ST_KEY_PASSWORD }}
         run: ./gradlew --no-daemon assembleRelease
 
+      - name: Verify signature and prepare release files
+        run: |
+          APK=$(ls app/build/outputs/apk/release/*-release.apk)
+          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
+          "$APKSIGNER" verify --print-certs "$APK" | grep "Signer #1 certificate SHA-256"
+          NAME="StudentToolkit-$GITHUB_REF_NAME.apk"
+          mkdir -p dist
+          cp "$APK" "dist/$NAME"
+          (cd dist && sha256sum "$NAME" > "$NAME.sha256")
+          SHA=$(cut -d' ' -f1 "dist/$NAME.sha256")
+          {
+            echo "Aplikasi Android ringan untuk kebutuhan mahasiswa sehari-hari: nilai & IPK, deadline, Pomodoro, acak kelompok, QR, konverter, dan catatan. Offline, tanpa akun."
+            echo
+            echo "### Download"
+            echo "**$NAME** (Android 8.0 ke atas) — ada di bagian *Assets* di bawah."
+            echo
+            echo "### Cara install"
+            echo "1. Download file \`.apk\` lewat HP Android."
+            echo "2. Buka file-nya. Jika diminta, izinkan **Install unknown apps** untuk browser / file manager."
+            echo "3. Pilih **Install**. Versi berikutnya bisa langsung meng-update tanpa uninstall."
+            echo
+            case "$GITHUB_REF_NAME" in
+              v0.*) echo "> Versi 0.x = beta: fitur MVP sudah lengkap, tapi belum lolos pengujian di berbagai perangkat sungguhan." ; echo ;;
+            esac
+            echo "SHA-256: \`$SHA\`"
+          } > dist/notes.md
+
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          files: app/build/outputs/apk/release/*-release.apk
-          generate_release_notes: true
+          name: Student Toolkit ${{ github.ref_name }}
+          body_path: dist/notes.md
+          files: |
+            dist/StudentToolkit-${{ github.ref_name }}.apk
+            dist/StudentToolkit-${{ github.ref_name }}.apk.sha256
+          fail_on_unmatched_files: true
+          make_latest: "true"

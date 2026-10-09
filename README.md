@@ -9,6 +9,12 @@ QR codes, converters and quick notes. No account, no internet permission, no tra
 
 The full product definition lives in [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md).
 
+## Download
+
+Get the latest signed APK from **[Releases](https://github.com/tehgeii/student-toolkit/releases/latest)**
+(Android 8.0+). Open the `.apk` on your phone, allow *Install unknown apps* for your browser or file manager if asked,
+then tap **Install**. Later versions update in place.
+
 ## Features
 
 | Area | What you get |
@@ -100,8 +106,18 @@ keyPassword=…
 ```
 
 or set `ST_KEYSTORE_PATH`, `ST_KEYSTORE_PASSWORD`, `ST_KEY_ALIAS`, `ST_KEY_PASSWORD`.
-To publish a signed APK to GitHub Releases, add the repository secrets `ST_KEYSTORE_BASE64` (the keystore, base64-encoded),
-`ST_KEYSTORE_PASSWORD`, `ST_KEY_ALIAS` and `ST_KEY_PASSWORD`, then push a tag such as `v1.0.0`.
+GitHub Actions signs releases with the repository secrets `ST_KEYSTORE_BASE64` (the keystore, base64-encoded),
+`ST_KEYSTORE_PASSWORD`, `ST_KEY_ALIAS` and `ST_KEY_PASSWORD`. To publish a new version:
+
+1. Bump `appVersionName` / `appVersionCode` in `app/build.gradle.kts` and push to `main`.
+2. Tag the commit with the same version and push the tag:
+   ```bash
+   git tag v1.0.0 && git push origin v1.0.0
+   ```
+3. The workflow checks that the tag matches `appVersionName`, builds and verifies the signed APK, and creates the
+   GitHub Release with `StudentToolkit-v1.0.0.apk` and its SHA-256.
+
+Keep a private backup of the keystore and its passwords: every update must be signed with the same key.
 
 ## Status
 
