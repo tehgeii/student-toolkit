@@ -1,12 +1,11 @@
 package com.tehgeii.studenttoolkit.domain.tasks
 
-import com.tehgeii.studenttoolkit.core.Fmt
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 
-enum class Priority(val label: String) { LOW("Low"), MEDIUM("Medium"), HIGH("High") }
+enum class Priority { LOW, MEDIUM, HIGH }
 
 data class Subtask(val id: String, val title: String, val done: Boolean = false)
 
@@ -28,15 +27,7 @@ data class Task(
     val updatedAt: Long = 0L,
 )
 
-enum class DeadlineStatus(val label: String) {
-    OVERDUE("Overdue"),
-    DUE_TODAY("Due today"),
-    ONE_DAY_LEFT("1 day left"),
-    DUE_SOON("Due soon"),
-    UPCOMING("Upcoming"),
-    NO_DEADLINE("No deadline"),
-    COMPLETED("Completed"),
-}
+enum class DeadlineStatus { OVERDUE, DUE_TODAY, ONE_DAY_LEFT, DUE_SOON, UPCOMING, NO_DEADLINE, COMPLETED }
 
 object Deadlines {
     /** "Due soon" covers deadlines within this many calendar days. */
@@ -61,41 +52,11 @@ object Deadlines {
             else -> DeadlineStatus.UPCOMING
         }
     }
-
-    /** Short relative description, e.g. "Due in 2 days" or "Overdue by 1 day". */
-    fun describe(deadline: Long, now: Long, zone: ZoneId): String {
-        val days = daysUntil(deadline, now, zone)
-        val time = Fmt.time(deadline, zone)
-        if (deadline < now) {
-            val late = -days
-            return when {
-                late <= 0L -> "Overdue since $time"
-                late == 1L -> "Overdue by 1 day"
-                else -> "Overdue by $late days"
-            }
-        }
-        return when {
-            days <= 0L -> "Due today, $time"
-            days == 1L -> "Due tomorrow, $time"
-            else -> "Due in $days days"
-        }
-    }
 }
 
-enum class TaskSort(val label: String) {
-    SMART("Smart"),
-    DEADLINE("Deadline"),
-    PRIORITY("Priority"),
-    NEWEST("Recently added"),
-}
+enum class TaskSort { SMART, DEADLINE, PRIORITY, NEWEST }
 
-enum class TaskSection(val label: String) {
-    OVERDUE("Overdue"),
-    TODAY("Today"),
-    UPCOMING("Upcoming"),
-    SOMEDAY("No deadline"),
-    COMPLETED("Completed"),
-}
+enum class TaskSection { OVERDUE, TODAY, UPCOMING, SOMEDAY, COMPLETED }
 
 object TaskOrganizer {
     fun section(task: Task, now: Long, zone: ZoneId): TaskSection = when (Deadlines.status(task, now, zone)) {
@@ -141,12 +102,6 @@ object TaskOrganizer {
 object ReminderPresets {
     val options: List<Int> = listOf(10, 30, 60, 180, 24 * 60, 2 * 24 * 60, 7 * 24 * 60)
 
-    fun label(minutes: Int): String = when {
-        minutes % (7 * 24 * 60) == 0 -> plural(minutes / (7 * 24 * 60), "week")
-        minutes % (24 * 60) == 0 -> plural(minutes / (24 * 60), "day")
-        minutes % 60 == 0 -> plural(minutes / 60, "hour")
-        else -> plural(minutes, "minute")
-    }
-
-    private fun plural(n: Int, unit: String) = if (n == 1) "1 $unit" else "$n ${unit}s"
+    /** Custom reminders may be anything from 1 minute up to this many minutes before the deadline. */
+    const val MAX_MINUTES = 365 * 24 * 60
 }

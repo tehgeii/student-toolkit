@@ -5,13 +5,14 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import com.tehgeii.studenttoolkit.core.Fmt
 import com.tehgeii.studenttoolkit.data.TaskObserver
-import com.tehgeii.studenttoolkit.domain.tasks.ReminderPresets
 import com.tehgeii.studenttoolkit.domain.tasks.Task
+import com.tehgeii.studenttoolkit.i18n.Lang
+import com.tehgeii.studenttoolkit.i18n.dateTime
+import com.tehgeii.studenttoolkit.i18n.durationWords
 
 /** Schedules deadline reminders with AlarmManager. No server and no background polling. */
-class ReminderScheduler(private val context: Context) : TaskObserver {
+class ReminderScheduler(private val context: Context, private val lang: () -> Lang) : TaskObserver {
 
     override fun onTaskChanged(old: Task?, new: Task?) {
         old?.let(::cancel)
@@ -22,12 +23,13 @@ class ReminderScheduler(private val context: Context) : TaskObserver {
         val deadline = task.deadline ?: return
         if (task.completed) return
         val now = System.currentTimeMillis()
+        val t = lang()
         for (minutes in task.reminders.distinct()) {
             val triggerAt = deadline - minutes * 60_000L
             if (triggerAt <= now) continue
             val text = buildString {
-                append("Due in ").append(ReminderPresets.label(minutes))
-                append(" · ").append(Fmt.dateTime(deadline))
+                append(t("Due in ", "Deadline ")).append(t.durationWords(minutes)).append(t("", " lagi"))
+                append(" · ").append(t.dateTime(deadline))
                 if (task.course.isNotBlank()) append(" · ").append(task.course)
             }
             val intent = baseIntent(task.id, minutes)

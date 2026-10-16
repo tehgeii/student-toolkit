@@ -3,11 +3,13 @@ package com.tehgeii.studenttoolkit.domain
 import com.tehgeii.studenttoolkit.domain.tasks.DeadlineStatus
 import com.tehgeii.studenttoolkit.domain.tasks.Deadlines
 import com.tehgeii.studenttoolkit.domain.tasks.Priority
-import com.tehgeii.studenttoolkit.domain.tasks.ReminderPresets
 import com.tehgeii.studenttoolkit.domain.tasks.Task
 import com.tehgeii.studenttoolkit.domain.tasks.TaskOrganizer
 import com.tehgeii.studenttoolkit.domain.tasks.TaskSection
 import com.tehgeii.studenttoolkit.domain.tasks.TaskSort
+import com.tehgeii.studenttoolkit.i18n.Lang
+import com.tehgeii.studenttoolkit.i18n.dueText
+import com.tehgeii.studenttoolkit.i18n.durationWords
 import java.time.LocalDateTime
 import java.time.ZoneId
 import org.junit.Assert.assertEquals
@@ -49,11 +51,18 @@ class TasksTest {
     @Test
     fun descriptions() {
         val now = at(2026, 10, 8, 14, 0)
-        assertEquals("Due in 2 days", Deadlines.describe(at(2026, 10, 10), now, zone))
-        assertEquals("Due tomorrow, 09:00", Deadlines.describe(at(2026, 10, 9, 9, 0), now, zone))
-        assertEquals("Due today, 23:59", Deadlines.describe(at(2026, 10, 8, 23, 59), now, zone))
-        assertEquals("Overdue by 1 day", Deadlines.describe(at(2026, 10, 7), now, zone))
-        assertEquals("Overdue since 13:00", Deadlines.describe(at(2026, 10, 8, 13, 0), now, zone))
+        val en = Lang.EN
+        assertEquals("Due in 2 days", en.dueText(at(2026, 10, 10), now, zone))
+        assertEquals("Due tomorrow, 09:00", en.dueText(at(2026, 10, 9, 9, 0), now, zone))
+        assertEquals("Due today, 23:59", en.dueText(at(2026, 10, 8, 23, 59), now, zone))
+        assertEquals("Overdue by 1 day", en.dueText(at(2026, 10, 7), now, zone))
+        assertEquals("Overdue by 3 days", en.dueText(at(2026, 10, 5), now, zone))
+        assertEquals("Overdue since 13:00", en.dueText(at(2026, 10, 8, 13, 0), now, zone))
+
+        val id = Lang.ID
+        assertEquals("2 hari lagi", id.dueText(at(2026, 10, 10), now, zone))
+        assertEquals("Besok, 09:00", id.dueText(at(2026, 10, 9, 9, 0), now, zone))
+        assertEquals("Terlambat 3 hari", id.dueText(at(2026, 10, 5), now, zone))
     }
 
     @Test
@@ -81,9 +90,14 @@ class TasksTest {
 
     @Test
     fun reminderLabels() {
-        assertEquals("1 day", ReminderPresets.label(1440))
-        assertEquals("3 hours", ReminderPresets.label(180))
-        assertEquals("30 minutes", ReminderPresets.label(30))
-        assertEquals("1 week", ReminderPresets.label(10080))
+        val en = Lang.EN
+        assertEquals("1 day", en.durationWords(1440))
+        assertEquals("3 hours", en.durationWords(180))
+        assertEquals("30 minutes", en.durationWords(30))
+        assertEquals("1 week", en.durationWords(10080))
+        assertEquals("2 hours 15 minutes", en.durationWords(135))
+        assertEquals("1 day 1 hour 1 minute", en.durationWords(1500 + 1))
+        assertEquals("2 jam 15 menit", Lang.ID.durationWords(135))
+        assertEquals("2 minggu", Lang.ID.durationWords(20160))
     }
 }

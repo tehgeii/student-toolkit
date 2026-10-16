@@ -9,6 +9,7 @@ import com.tehgeii.studenttoolkit.domain.notes.Note
 import com.tehgeii.studenttoolkit.domain.tasks.Priority
 import com.tehgeii.studenttoolkit.domain.tasks.Subtask
 import com.tehgeii.studenttoolkit.domain.tasks.Task
+import com.tehgeii.studenttoolkit.i18n.AppLanguage
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -19,6 +20,7 @@ class BackupTest {
     private val sample = BackupData(
         settings = AppSettings(
             theme = ThemeMode.DARK,
+            language = AppLanguage.INDONESIAN,
             gpaDecimals = 3,
             gradeScale = GradeScale(listOf(GradeBand("A", 80.0, 4.0), GradeBand("B", 65.0, 3.0), GradeBand("C", 0.0, 2.0))),
             profile = Profile(name = "Dafi"),
@@ -50,25 +52,25 @@ class BackupTest {
         assertEquals(sample.copy(academic = sample.academic.copy(draft = file.data.academic.draft)), file.data)
     }
 
-    private fun assertRejected(text: String, messagePart: String) {
+    private fun assertRejected(text: String, reason: BackupError) {
         try {
             BackupCodec.decode(text)
             fail("Expected rejection")
         } catch (e: BackupException) {
-            assertTrue("'${e.message}' should contain '$messagePart'", e.message!!.contains(messagePart))
+            assertEquals(reason, e.reason)
         }
     }
 
     @Test
     fun rejectsBadFiles() {
-        assertRejected("", "empty")
-        assertRejected("{ not json", "not readable JSON")
-        assertRejected("{\"app\":\"Other\",\"schemaVersion\":1}", "not a Student Toolkit backup")
-        assertRejected("{\"app\":\"StudentToolkit\"}", "no schema version")
-        assertRejected("{\"app\":\"StudentToolkit\",\"schemaVersion\":99}", "newer version")
-        assertRejected("{\"app\":\"StudentToolkit\",\"schemaVersion\":0}", "Unsupported")
-        assertRejected("{\"app\":\"StudentToolkit\",\"schemaVersion\":1,\"tasks\":[{\"title\":\"no id\"}]}", "damaged")
-        assertRejected("{\"app\":\"StudentToolkit\",\"schemaVersion\":1,\"tasks\":[42]}", "damaged")
+        assertRejected("", BackupError.EMPTY)
+        assertRejected("{ not json", BackupError.NOT_JSON)
+        assertRejected("{\"app\":\"Other\",\"schemaVersion\":1}", BackupError.NOT_STUDENT_TOOLKIT)
+        assertRejected("{\"app\":\"StudentToolkit\"}", BackupError.NO_SCHEMA)
+        assertRejected("{\"app\":\"StudentToolkit\",\"schemaVersion\":99}", BackupError.NEWER_SCHEMA)
+        assertRejected("{\"app\":\"StudentToolkit\",\"schemaVersion\":0}", BackupError.UNSUPPORTED_SCHEMA)
+        assertRejected("{\"app\":\"StudentToolkit\",\"schemaVersion\":1,\"tasks\":[{\"title\":\"no id\"}]}", BackupError.DAMAGED)
+        assertRejected("{\"app\":\"StudentToolkit\",\"schemaVersion\":1,\"tasks\":[42]}", BackupError.DAMAGED)
     }
 
     @Test

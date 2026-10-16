@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.tehgeii.studenttoolkit.AppContainer
+import com.tehgeii.studenttoolkit.i18n.Lang
 import com.tehgeii.studenttoolkit.ui.academic.AcademicScreen
 import com.tehgeii.studenttoolkit.ui.academic.GpaGoalScreen
 import com.tehgeii.studenttoolkit.ui.academic.GradeCalculatorScreen
@@ -61,17 +62,17 @@ import com.tehgeii.studenttoolkit.ui.tools.RandomizerScreen
 import com.tehgeii.studenttoolkit.ui.tools.ToolsScreen
 import com.tehgeii.studenttoolkit.ui.tools.UnitConverterScreen
 
-private data class Tab(val route: String, val label: String, val icon: ImageVector)
+private data class Tab(val route: String, val en: String, val id: String, val icon: ImageVector)
 
 private val bottomTabs = listOf(
-    Tab(Routes.HOME, "Home", Icons.Filled.Home),
-    Tab(Routes.ACADEMIC, "Academic", AppIcons.School),
-    Tab(Routes.TASKS, "Tasks", Icons.Filled.CheckCircle),
-    Tab(Routes.TOOLS, "Tools", Icons.Filled.Build),
+    Tab(Routes.HOME, "Home", "Beranda", Icons.Filled.Home),
+    Tab(Routes.ACADEMIC, "Academic", "Akademik", AppIcons.School),
+    Tab(Routes.TASKS, "Tasks", "Tugas", Icons.Filled.CheckCircle),
+    Tab(Routes.TOOLS, "Tools", "Alat", Icons.Filled.Build),
 )
 
 @Composable
-fun AppRoot(container: AppContainer, deepLink: String?, onDeepLinkHandled: () -> Unit) {
+fun AppRoot(container: AppContainer, lang: Lang, deepLink: String?, onDeepLinkHandled: () -> Unit) {
     val navigator = rememberNavigator()
     val holder = rememberSaveableStateHolder()
     navigator.onRemoved = { holder.removeState(it) }
@@ -92,7 +93,7 @@ fun AppRoot(container: AppContainer, deepLink: String?, onDeepLinkHandled: () ->
     val route = navigator.current
     val showBottomBar = navigator.isTabRoot
 
-    CompositionLocalProvider(LocalContainer provides container, LocalMessenger provides messenger) {
+    CompositionLocalProvider(LocalContainer provides container, LocalMessenger provides messenger, LocalLang provides lang) {
         Box(
             Modifier
                 .fillMaxSize()
@@ -122,7 +123,7 @@ fun AppRoot(container: AppContainer, deepLink: String?, onDeepLinkHandled: () ->
                                 selected = route == tab.route,
                                 onClick = { navigator.selectTab(tab.route) },
                                 icon = { Icon(tab.icon, contentDescription = null) },
-                                label = { Text(tab.label) },
+                                label = { Text(lang(tab.en, tab.id)) },
                             )
                         }
                     }

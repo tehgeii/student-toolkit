@@ -80,15 +80,18 @@ class Navigator(initial: List<String>) {
         removed.filter { it !in Routes.tabs }.forEach { onRemoved(it) }
     }
 
-    /** Opens a route coming from a notification on top of the matching tab. */
+    /**
+     * Opens a route coming from a notification on top of the matching tab. Only routes the app's own
+     * notifications use are accepted; anything else another app might send is ignored.
+     */
     fun openExternal(route: String) {
         val root = when {
-            route.startsWith("task/") -> Routes.TASKS
+            Regex("^task/[A-Za-z0-9-]{1,64}$").matches(route) -> Routes.TASKS
             route == Routes.POMODORO || route == Routes.TIMER -> Routes.TOOLS
-            else -> Routes.HOME
+            else -> return
         }
         selectTab(root)
-        if (route != root) stack.add(route)
+        stack.add(route)
     }
 }
 

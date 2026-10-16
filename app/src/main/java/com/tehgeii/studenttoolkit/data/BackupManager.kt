@@ -39,10 +39,10 @@ class BackupManager(private val container: AppContainer, private val context: Co
         val bytes = try {
             context.contentResolver.openInputStream(uri)?.use(::readLimited)
         } catch (e: IOException) {
-            throw BackupException("Could not read the file.", e)
+            throw BackupException(BackupError.CANNOT_READ, cause = e)
         } catch (e: SecurityException) {
-            throw BackupException("Student Toolkit is not allowed to read that file.", e)
-        } ?: throw BackupException("Could not open the file.")
+            throw BackupException(BackupError.NOT_ALLOWED, cause = e)
+        } ?: throw BackupException(BackupError.CANNOT_OPEN)
         return BackupCodec.decode(String(bytes, Charsets.UTF_8))
     }
 
@@ -77,7 +77,7 @@ class BackupManager(private val container: AppContainer, private val context: Co
             val read = input.read(buffer)
             if (read < 0) break
             out.write(buffer, 0, read)
-            if (out.size() > BackupCodec.MAX_BYTES) throw BackupException("The file is too large to be a Student Toolkit backup.")
+            if (out.size() > BackupCodec.MAX_BYTES) throw BackupException(BackupError.TOO_LARGE)
         }
         return out.toByteArray()
     }

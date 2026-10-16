@@ -13,6 +13,7 @@ import com.tehgeii.studenttoolkit.domain.focus.Countdown
 import com.tehgeii.studenttoolkit.domain.focus.FocusPhase
 import com.tehgeii.studenttoolkit.domain.focus.PomodoroState
 import com.tehgeii.studenttoolkit.domain.focus.Stopwatch
+import com.tehgeii.studenttoolkit.i18n.Lang
 import com.tehgeii.studenttoolkit.ui.Routes
 import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +30,7 @@ import org.json.JSONObject
  * is persisted on every change. A running countdown has one AlarmManager alarm at its end, so the
  * user is notified even if the app was closed — without a foreground service or polling.
  */
-class FocusEngine(private val context: Context, private val stats: FocusRepository) {
+class FocusEngine(private val context: Context, private val stats: FocusRepository, private val lang: () -> Lang) {
     private val prefs = context.getSharedPreferences("focus_state", Context.MODE_PRIVATE)
 
     private val _pomodoro: MutableStateFlow<PomodoroState>
@@ -100,23 +101,27 @@ class FocusEngine(private val context: Context, private val stats: FocusReposito
             if (p.phase == FocusPhase.FOCUS) stats.record(LocalDate.now(), p.focusMinutes)
             val next = p.advance()
             setPomodoro { next }
+            val t = lang()
             val title: String
             val text: String
             if (p.phase == FocusPhase.FOCUS) {
-                title = "Focus session done 🎉"
-                text = "Nice work! Take a ${p.breakMinutes}-minute break."
+                title = t("Focus session done 🎉", "Sesi fokus selesai 🎉")
+                text = t("Nice work! Take a ${p.breakMinutes}-minute break.", "Mantap! Istirahat dulu ${p.breakMinutes} menit.")
             } else {
-                title = "Break is over"
-                text = "Ready for session ${next.session} of ${next.sessionsPerCycle}?"
+                title = t("Break is over", "Istirahat selesai")
+                text = t("Ready for session ${next.session} of ${next.sessionsPerCycle}?", "Siap untuk sesi ${next.session} dari ${next.sessionsPerCycle}?")
             }
             Notifier.post(context, NOTIFICATION_POMODORO, Notifier.CHANNEL_FOCUS, title, text, Routes.POMODORO)
         }
         val t = _timer.value
         if (t.isRunning && t.remaining(n) <= FINISH_TOLERANCE_MS) {
             setTimer { it.reset() }
+            val tr = lang()
             Notifier.post(
                 context, NOTIFICATION_TIMER, Notifier.CHANNEL_FOCUS,
-                "Time's up ⏰", "Your ${Fmt.countdown(t.durationMs)} timer has finished.", Routes.TIMER,
+                tr("Time's up ⏰", "Waktu habis ⏰"),
+                tr("Your ${Fmt.countdown(t.durationMs)} timer has finished.", "Timer ${Fmt.countdown(t.durationMs)} sudah selesai."),
+                Routes.TIMER,
             )
         }
     }

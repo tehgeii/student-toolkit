@@ -53,7 +53,9 @@ import com.tehgeii.studenttoolkit.core.Fmt
 import com.tehgeii.studenttoolkit.core.newId
 import com.tehgeii.studenttoolkit.data.NoteRepository
 import com.tehgeii.studenttoolkit.domain.notes.Note
+import com.tehgeii.studenttoolkit.i18n.dateTime
 import com.tehgeii.studenttoolkit.ui.LocalContainer
+import com.tehgeii.studenttoolkit.ui.LocalLang
 import com.tehgeii.studenttoolkit.ui.LocalMessenger
 import com.tehgeii.studenttoolkit.ui.Navigator
 import com.tehgeii.studenttoolkit.ui.Platform
@@ -82,17 +84,18 @@ private fun notesViewModel(): NotesViewModel {
 
 @Composable
 fun NotesScreen(nav: Navigator, onBack: () -> Unit) {
+    val t = LocalLang.current
     val vm = notesViewModel()
     val notes by vm.notes.collectAsStateWithLifecycle()
     var query by rememberSaveable { mutableStateOf("") }
     val visible = notes.filter { it.matches(query) }.sortedByDescending { it.updatedAt }
 
     AppScaffold(
-        title = "Notes",
+        title = t("Notes", "Catatan"),
         onBack = onBack,
         floatingActionButton = {
             FloatingActionButton(onClick = { nav.navigate(Routes.note(newId())) }) {
-                Icon(Icons.Filled.Add, contentDescription = "New note")
+                Icon(Icons.Filled.Add, contentDescription = t("New note", "Catatan baru"))
             }
         },
     ) { padding ->
@@ -102,11 +105,11 @@ fun NotesScreen(nav: Navigator, onBack: () -> Unit) {
                     OutlinedTextField(
                         value = query,
                         onValueChange = { query = it },
-                        placeholder = { Text("Search notes") },
+                        placeholder = { Text(t("Search notes", "Cari catatan")) },
                         leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                         trailingIcon = {
                             if (query.isNotEmpty()) {
-                                IconButton(onClick = { query = "" }) { Icon(Icons.Filled.Clear, contentDescription = "Clear search") }
+                                IconButton(onClick = { query = "" }) { Icon(Icons.Filled.Clear, contentDescription = t("Clear search", "Hapus pencarian")) }
                             }
                         },
                         singleLine = true,
@@ -119,16 +122,16 @@ fun NotesScreen(nav: Navigator, onBack: () -> Unit) {
                 item(key = "empty") {
                     EmptyState(
                         emoji = "📝",
-                        title = "No notes yet",
-                        message = "Jot something down quickly. Notes save automatically.",
-                        actionLabel = "New note",
+                        title = t("No notes yet", "Belum ada catatan"),
+                        message = t("Jot something down quickly. Notes save automatically.", "Catat sesuatu dengan cepat. Catatan tersimpan otomatis."),
+                        actionLabel = t("New note", "Catatan baru"),
                         onAction = { nav.navigate(Routes.note(newId())) },
                         modifier = Modifier.readable(),
                     )
                 }
             } else if (visible.isEmpty()) {
                 item(key = "no-match") {
-                    EmptyState("🔍", "No matching notes", "Nothing contains \"$query\".", modifier = Modifier.readable())
+                    EmptyState("🔍", t("No matching notes", "Catatan tidak ditemukan"), t("Nothing contains \"$query\".", "Tidak ada yang berisi \"$query\"."), modifier = Modifier.readable())
                 }
             }
             items(visible, key = { it.id }) { note ->
@@ -145,7 +148,7 @@ fun NotesScreen(nav: Navigator, onBack: () -> Unit) {
                             )
                         }
                         Text(
-                            "Edited ${Fmt.dateTime(note.updatedAt)}",
+                            t("Edited ", "Diubah ") + t.dateTime(note.updatedAt),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 4.dp),
@@ -163,6 +166,7 @@ fun NotesScreen(nav: Navigator, onBack: () -> Unit) {
  */
 @Composable
 fun NoteEditorScreen(id: String, onBack: () -> Unit) {
+    val t = LocalLang.current
     val vm = notesViewModel()
     val context = LocalContext.current
     val messenger = LocalMessenger.current
@@ -184,15 +188,15 @@ fun NoteEditorScreen(id: String, onBack: () -> Unit) {
     }
 
     AppScaffold(
-        title = if (stored == null) "New note" else "Note",
+        title = if (stored == null) t("New note", "Catatan baru") else t("Note", "Catatan"),
         onBack = onBack,
         actions = {
             IconButton(
                 onClick = { Platform.shareText(context, listOf(title, content).filter { it.isNotBlank() }.joinToString("\n\n")) },
                 enabled = title.isNotBlank() || content.isNotBlank(),
-            ) { Icon(Icons.Filled.Share, contentDescription = "Share note") }
+            ) { Icon(Icons.Filled.Share, contentDescription = t("Share note", "Bagikan catatan")) }
             if (stored != null) {
-                IconButton(onClick = { askDelete = true }) { Icon(Icons.Filled.Delete, contentDescription = "Delete note") }
+                IconButton(onClick = { askDelete = true }) { Icon(Icons.Filled.Delete, contentDescription = t("Delete note", "Hapus catatan")) }
             }
         },
     ) { padding ->
@@ -219,7 +223,7 @@ fun NoteEditorScreen(id: String, onBack: () -> Unit) {
                 TextField(
                     value = title,
                     onValueChange = { title = it },
-                    placeholder = { Text("Title", style = MaterialTheme.typography.titleLarge) },
+                    placeholder = { Text(t("Title", "Judul"), style = MaterialTheme.typography.titleLarge) },
                     textStyle = MaterialTheme.typography.titleLarge,
                     singleLine = true,
                     colors = colors,
@@ -229,7 +233,7 @@ fun NoteEditorScreen(id: String, onBack: () -> Unit) {
                 TextField(
                     value = content,
                     onValueChange = { content = it },
-                    placeholder = { Text("Start typing…") },
+                    placeholder = { Text(t("Start typing…", "Mulai menulis…")) },
                     colors = colors,
                     minLines = 8,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
@@ -237,7 +241,7 @@ fun NoteEditorScreen(id: String, onBack: () -> Unit) {
                 )
                 if (stored != null) {
                     Text(
-                        "Created ${Fmt.dateTime(stored.createdAt)} · Edited ${Fmt.dateTime(stored.updatedAt)}",
+                        t("Created ", "Dibuat ") + t.dateTime(stored.createdAt) + " · " + t("Edited ", "Diubah ") + t.dateTime(stored.updatedAt),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(16.dp),
@@ -249,16 +253,16 @@ fun NoteEditorScreen(id: String, onBack: () -> Unit) {
 
     if (askDelete && stored != null) {
         ConfirmDialog(
-            title = "Delete note?",
-            text = "\"${stored.displayTitle}\" will be deleted.",
-            confirmLabel = "Delete",
+            title = t("Delete note?", "Hapus catatan?"),
+            text = t("\"${stored.displayTitle}\" will be deleted.", "\"${stored.displayTitle}\" akan dihapus."),
+            confirmLabel = t("Delete", "Hapus"),
             destructive = true,
             onDismiss = { askDelete = false },
             onConfirm = {
                 deleted = true
                 onBack()
                 val removed = vm.delete(id)
-                if (removed != null) messenger.show("Note deleted", "Undo") { vm.restore(removed) }
+                if (removed != null) messenger.show(t("Note deleted", "Catatan dihapus"), t("Undo", "Urungkan")) { vm.restore(removed) }
             },
         )
     }

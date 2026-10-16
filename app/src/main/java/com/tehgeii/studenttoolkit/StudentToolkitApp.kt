@@ -16,6 +16,7 @@ import com.tehgeii.studenttoolkit.data.TaskRepository
 import com.tehgeii.studenttoolkit.domain.focus.DayFocus
 import com.tehgeii.studenttoolkit.domain.notes.Note
 import com.tehgeii.studenttoolkit.domain.tasks.Task
+import com.tehgeii.studenttoolkit.i18n.Lang
 import com.tehgeii.studenttoolkit.notify.FocusEngine
 import com.tehgeii.studenttoolkit.notify.Notifier
 import com.tehgeii.studenttoolkit.notify.ReminderScheduler
@@ -31,7 +32,7 @@ class StudentToolkitApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        Notifier.createChannels(this)
+        Notifier.createChannels(this, container.lang())
     }
 
     companion object {
@@ -48,7 +49,10 @@ class AppContainer(private val context: Context) {
 
     val settings: SettingsRepository by lazy { SettingsRepository(context) }
 
-    val reminders: ReminderScheduler by lazy { ReminderScheduler(context) }
+    /** Current UI language, resolved from Settings (or the phone's language). */
+    fun lang(): Lang = Lang.resolve(settings.value.language)
+
+    val reminders: ReminderScheduler by lazy { ReminderScheduler(context, ::lang) }
 
     val tasks: TaskRepository by lazy {
         TaskRepository(
@@ -83,9 +87,30 @@ class AppContainer(private val context: Context) {
         )
     }
 
-    val focus: FocusEngine by lazy { FocusEngine(context, focusStats) }
+    val focus: FocusEngine by lazy { FocusEngine(context, focusStats, ::lang) }
 
     val backup: BackupManager by lazy { BackupManager(this, context) }
+
+    private var appliedLang: Lang? = null
+
+    /**
+     * Runs on the main thread when the UI starts and whenever the language changes: refreshes the
+     * notification channel names and restores focus alarms. Returns true when reminders should be
+     * rescheduled too (see [rescheduleReminders]).
+     */
+    fun applyLanguage(lang: Lang): Boolean {
+        if (appliedLang === lang) return false
+        appliedLang = lang
+        Notifier.createChannels(context, lang)
+        focus.restoreAlarms()
+        return true
+    }
+
+    /**
+     * Re-creates every deadline alarm. Alarms disappear when the app is force-stopped (or killed by
+     * some battery savers) and reminder texts follow the language, so this runs on each app start.
+     */
+    fun rescheduleReminders() = reminders.rescheduleAll(tasks.tasks.value)
 
     /** Writes any debounced changes immediately. */
     fun flush() {

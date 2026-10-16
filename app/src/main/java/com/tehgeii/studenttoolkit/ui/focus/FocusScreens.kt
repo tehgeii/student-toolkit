@@ -47,7 +47,11 @@ import com.tehgeii.studenttoolkit.domain.focus.DayFocus
 import com.tehgeii.studenttoolkit.domain.focus.FocusPhase
 import com.tehgeii.studenttoolkit.domain.focus.PomodoroState
 import com.tehgeii.studenttoolkit.notify.FocusEngine
+import com.tehgeii.studenttoolkit.i18n.Lang
+import com.tehgeii.studenttoolkit.i18n.durationShort
+import com.tehgeii.studenttoolkit.i18n.focusPhase
 import com.tehgeii.studenttoolkit.ui.LocalContainer
+import com.tehgeii.studenttoolkit.ui.LocalLang
 import com.tehgeii.studenttoolkit.ui.components.AppIcons
 import com.tehgeii.studenttoolkit.ui.components.AppScaffold
 import com.tehgeii.studenttoolkit.ui.components.ChoiceChips
@@ -135,10 +139,11 @@ private fun ControlButton(text: String, icon: ImageVector, primary: Boolean, mod
 /** Starts/pauses/resumes a countdown: one button whose label follows the state. */
 @Composable
 private fun RowScopeStartPause(countdown: Countdown, modifier: Modifier, onStart: () -> Unit, onPause: () -> Unit) {
+    val t = LocalLang.current
     when {
-        countdown.isRunning -> ControlButton("Pause", AppIcons.Pause, true, modifier, onPause)
-        countdown.isFresh -> ControlButton("Start", Icons.Filled.PlayArrow, true, modifier, onStart)
-        else -> ControlButton("Resume", Icons.Filled.PlayArrow, true, modifier, onStart)
+        countdown.isRunning -> ControlButton(t("Pause", "Jeda"), AppIcons.Pause, true, modifier, onPause)
+        countdown.isFresh -> ControlButton(t("Start", "Mulai"), Icons.Filled.PlayArrow, true, modifier, onStart)
+        else -> ControlButton(t("Resume", "Lanjut"), Icons.Filled.PlayArrow, true, modifier, onStart)
     }
 }
 
@@ -146,6 +151,7 @@ private fun RowScopeStartPause(countdown: Countdown, modifier: Modifier, onStart
 
 @Composable
 fun PomodoroScreen(onBack: () -> Unit) {
+    val t = LocalLang.current
     val vm = focusViewModel()
     val state by vm.pomodoro.collectAsStateWithLifecycle()
     val stats by vm.stats.collectAsStateWithLifecycle()
@@ -165,7 +171,13 @@ fun PomodoroScreen(onBack: () -> Unit) {
                 ChoiceChips(
                     options = presets,
                     selected = if (current in presets) current else "Custom",
-                    label = { if (it == "Custom" && current !in presets) "Custom ($current)" else it },
+                    label = { option ->
+                        when {
+                            option != "Custom" -> option
+                            current in presets -> t("Custom", "Atur sendiri")
+                            else -> t("Custom", "Atur sendiri") + " ($current)"
+                        }
+                    },
                     onSelect = { option ->
                         val preset = PomodoroState.PRESETS.firstOrNull { "${it.first} / ${it.second}" == option }
                         if (preset == null) customDialog = true else vm.setPomodoroDurations(preset.first, preset.second)
@@ -174,18 +186,18 @@ fun PomodoroScreen(onBack: () -> Unit) {
             }
             Dial(
                 progress = countdown.progress(now),
-                top = if (state.phase == FocusPhase.FOCUS) "FOCUS" else "BREAK",
+                top = t.focusPhase(state.phase),
                 time = Fmt.countdown(remaining),
-                bottom = "Session ${state.session} of ${state.sessionsPerCycle}",
+                bottom = t("Session ${state.session} of ${state.sessionsPerCycle}", "Sesi ${state.session} dari ${state.sessionsPerCycle}"),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 RowScopeStartPause(countdown, Modifier.weight(1.4f), vm::startPomodoro, vm::pausePomodoro)
-                ControlButton("Reset", Icons.Filled.Refresh, false, Modifier.weight(1f), vm::resetPomodoro)
-                ControlButton("Skip", AppIcons.SkipNext, false, Modifier.weight(1f), vm::skipPomodoro)
+                ControlButton(t("Reset", "Ulang"), Icons.Filled.Refresh, false, Modifier.weight(1f), vm::resetPomodoro)
+                ControlButton(t("Skip", "Lewati"), AppIcons.SkipNext, false, Modifier.weight(1f), vm::skipPomodoro)
             }
-            NotificationPermissionCard("Allow them to hear when a session ends.")
+            NotificationPermissionCard(t("Allow them to hear when a session ends.", "Izinkan agar ada pemberitahuan saat sesi selesai."))
             ExactAlarmCard()
-            if (!running) FocusStatsCard(stats)
+            if (!running) FocusStatsCard(stats, t)
         }
     }
 
@@ -197,11 +209,11 @@ fun PomodoroScreen(onBack: () -> Unit) {
         val valid = focusValue != null && focusValue in 1..240 && breakValue != null && breakValue in 1..120
         AlertDialog(
             onDismissRequest = { customDialog = false },
-            title = { Text("Custom durations") },
+            title = { Text(t("Custom durations", "Atur durasi sendiri")) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    NumberField(focus, { focus = it }, "Focus (1–240)", Modifier.fillMaxWidth(), decimal = false, suffix = "min")
-                    NumberField(brk, { brk = it }, "Break (1–120)", Modifier.fillMaxWidth(), decimal = false, suffix = "min")
+                    NumberField(focus, { focus = it }, t("Focus (1–240)", "Fokus (1–240)"), Modifier.fillMaxWidth(), decimal = false, suffix = t("min", "mnt"))
+                    NumberField(brk, { brk = it }, t("Break (1–120)", "Istirahat (1–120)"), Modifier.fillMaxWidth(), decimal = false, suffix = t("min", "mnt"))
                 }
             },
             confirmButton = {
@@ -211,34 +223,34 @@ fun PomodoroScreen(onBack: () -> Unit) {
                         customDialog = false
                     },
                     enabled = valid,
-                ) { Text("Apply") }
+                ) { Text(t("Apply", "Terapkan")) }
             },
-            dismissButton = { TextButton(onClick = { customDialog = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { customDialog = false }) { Text(t("Cancel", "Batal")) } },
         )
     }
 }
 
 @Composable
-private fun FocusStatsCard(stats: Map<String, DayFocus>) {
+private fun FocusStatsCard(stats: Map<String, DayFocus>, t: Lang) {
     val today = LocalDate.now()
     val todayStats = stats[today.toString()] ?: DayFocus()
     val week = (0L..6L).map { stats[today.minusDays(it).toString()] ?: DayFocus() }.fold(DayFocus()) { a, b -> a + b }
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Focus statistics", style = MaterialTheme.typography.titleMedium)
-            StatLine("Today", todayStats)
+            Text(t("Focus statistics", "Statistik fokus"), style = MaterialTheme.typography.titleMedium)
+            StatLine(t("Today", "Hari ini"), todayStats, t)
             HorizontalDivider()
-            StatLine("Last 7 days", week)
+            StatLine(t("Last 7 days", "7 hari terakhir"), week, t)
         }
     }
 }
 
 @Composable
-private fun StatLine(label: String, day: DayFocus) {
+private fun StatLine(label: String, day: DayFocus, t: Lang) {
     Row {
         Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
         Text(
-            "${day.sessions} session${if (day.sessions == 1) "" else "s"} · ${Fmt.duration(day.minutes)} focused",
+            t.count(day.sessions, "session", "sessions", "sesi") + " · " + t.durationShort(day.minutes) + t(" focused", " fokus"),
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Medium,
         )
@@ -249,6 +261,7 @@ private fun StatLine(label: String, day: DayFocus) {
 
 @Composable
 fun TimerScreen(onBack: () -> Unit) {
+    val t = LocalLang.current
     val vm = focusViewModel()
     val timer by vm.timer.collectAsStateWithLifecycle()
     val running = timer.isRunning
@@ -268,31 +281,31 @@ fun TimerScreen(onBack: () -> Unit) {
                 ChoiceChips(
                     options = presets,
                     selected = presets.firstOrNull { it * 60_000L == timer.durationMs },
-                    label = { if (it == 60) "1 hour" else "$it min" },
+                    label = { if (it == 60) t("1 hour", "1 jam") else "$it " + t("min", "mnt") },
                     onSelect = { vm.setTimer(it * 60_000L) },
                 )
             }
             Dial(
                 progress = timer.progress(now),
-                top = if (running) "RUNNING" else if (timer.isFresh) "READY" else "PAUSED",
+                top = if (running) t("RUNNING", "BERJALAN") else if (timer.isFresh) t("READY", "SIAP") else t("PAUSED", "JEDA"),
                 time = Fmt.countdown(remaining),
                 bottom = null,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 RowScopeStartPause(timer, Modifier.weight(1.4f), vm::startTimer, vm::pauseTimer)
-                ControlButton("Reset", Icons.Filled.Refresh, false, Modifier.weight(1f), vm::resetTimer)
+                ControlButton(t("Reset", "Ulang"), Icons.Filled.Refresh, false, Modifier.weight(1f), vm::resetTimer)
             }
             if (timer.isFresh) {
-                SectionTitle("Custom")
+                SectionTitle(t("Custom", "Atur sendiri"))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    NumberField(hours, { hours = it.take(2) }, "h", Modifier.weight(1f), decimal = false)
-                    NumberField(minutes, { minutes = it.take(2) }, "min", Modifier.weight(1f), decimal = false)
-                    NumberField(seconds, { seconds = it.take(2) }, "s", Modifier.weight(1f), decimal = false)
+                    NumberField(hours, { hours = it.take(2) }, t("h", "jam"), Modifier.weight(1f), decimal = false)
+                    NumberField(minutes, { minutes = it.take(2) }, t("min", "mnt"), Modifier.weight(1f), decimal = false)
+                    NumberField(seconds, { seconds = it.take(2) }, t("s", "dtk"), Modifier.weight(1f), decimal = false)
                     val total = ((hours.toLongOrNull() ?: 0) * 3600 + (minutes.toLongOrNull() ?: 0) * 60 + (seconds.toLongOrNull() ?: 0)) * 1000
-                    TextButton(onClick = { vm.setTimer(total) }, enabled = total in 1_000L..(24 * 3_600_000L)) { Text("Set") }
+                    TextButton(onClick = { vm.setTimer(total) }, enabled = total in 1_000L..(24 * 3_600_000L)) { Text(t("Set", "Atur")) }
                 }
             }
-            NotificationPermissionCard("Allow them to hear when the timer ends.")
+            NotificationPermissionCard(t("Allow them to hear when the timer ends.", "Izinkan agar ada pemberitahuan saat timer selesai."))
             ExactAlarmCard()
         }
     }
@@ -302,6 +315,7 @@ fun TimerScreen(onBack: () -> Unit) {
 
 @Composable
 fun StopwatchScreen(onBack: () -> Unit) {
+    val t = LocalLang.current
     val vm = focusViewModel()
     val sw by vm.stopwatch.collectAsStateWithLifecycle()
     val now = rememberElapsedNow(active = sw.isRunning, intervalMs = 100L)
@@ -315,18 +329,18 @@ fun StopwatchScreen(onBack: () -> Unit) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 when {
                     sw.isRunning -> {
-                        ControlButton("Pause", AppIcons.Pause, true, Modifier.weight(1f), vm::pauseStopwatch)
-                        ControlButton("Lap", AppIcons.Timer, false, Modifier.weight(1f), vm::lapStopwatch)
+                        ControlButton(t("Pause", "Jeda"), AppIcons.Pause, true, Modifier.weight(1f), vm::pauseStopwatch)
+                        ControlButton(t("Lap", "Lap"), AppIcons.Timer, false, Modifier.weight(1f), vm::lapStopwatch)
                     }
-                    elapsed == 0L -> ControlButton("Start", Icons.Filled.PlayArrow, true, Modifier.weight(1f), vm::startStopwatch)
+                    elapsed == 0L -> ControlButton(t("Start", "Mulai"), Icons.Filled.PlayArrow, true, Modifier.weight(1f), vm::startStopwatch)
                     else -> {
-                        ControlButton("Resume", Icons.Filled.PlayArrow, true, Modifier.weight(1f), vm::startStopwatch)
-                        ControlButton("Reset", Icons.Filled.Refresh, false, Modifier.weight(1f), vm::resetStopwatch)
+                        ControlButton(t("Resume", "Lanjut"), Icons.Filled.PlayArrow, true, Modifier.weight(1f), vm::startStopwatch)
+                        ControlButton(t("Reset", "Ulang"), Icons.Filled.Refresh, false, Modifier.weight(1f), vm::resetStopwatch)
                     }
                 }
             }
             if (sw.laps.isNotEmpty()) {
-                SectionTitle("Laps")
+                SectionTitle(t("Laps", "Lap"))
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(vertical = 8.dp)) {
                         sw.laps.indices.reversed().forEach { i ->

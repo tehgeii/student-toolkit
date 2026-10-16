@@ -25,8 +25,11 @@ data class BackupFile(
 
 enum class RestoreMode { MERGE, REPLACE }
 
-/** A restore problem with a message that can be shown to the user as-is. */
-class BackupException(message: String, cause: Throwable? = null) : Exception(message, cause)
+/** Why a backup cannot be read. The UI turns [reason] into a message in the user's language. */
+enum class BackupError { EMPTY, TOO_LARGE, NOT_JSON, NOT_STUDENT_TOOLKIT, NO_SCHEMA, NEWER_SCHEMA, UNSUPPORTED_SCHEMA, DAMAGED, CANNOT_OPEN, CANNOT_READ, NOT_ALLOWED }
+
+class BackupException(val reason: BackupError, val detail: String = "", cause: Throwable? = null) :
+    Exception(if (detail.isEmpty()) reason.name else "${reason.name}: $detail", cause)
 
 /**
  * StudentToolkitBackup.json format:
@@ -52,20 +55,20 @@ object BackupCodec {
 
     /** Parses and fully validates a backup before anything is changed. */
     fun decode(text: String): BackupFile {
-        if (text.isBlank()) throw BackupException("The file is empty.")
-        if (text.length > MAX_BYTES) throw BackupException("The file is too large to be a Student Toolkit backup.")
+        if (text.isBlank()) throw BackupException(BackupError.EMPTY)
+        if (text.length > MAX_BYTES) throw BackupException(BackupError.TOO_LARGE)
         val root = try {
             JSONObject(text)
         } catch (e: JSONException) {
-            throw BackupException("This file is not a valid backup (it is not readable JSON).", e)
+            throw BackupException(BackupError.NOT_JSON, cause = e)
         }
-        if (root.optString("app") != APP_ID) throw BackupException("This file is not a Student Toolkit backup.")
+        if (root.optString("app") != APP_ID) throw BackupException(BackupError.NOT_STUDENT_TOOLKIT)
         val version = (root.opt("schemaVersion") as? Number)?.toInt()
-            ?: throw BackupException("The backup has no schema version.")
+            ?: throw BackupException(BackupError.NO_SCHEMA)
         if (version > SCHEMA_VERSION) {
-            throw BackupException("This backup was made by a newer version of Student Toolkit (schema $version). Update the app first.")
+            throw BackupException(BackupError.NEWER_SCHEMA, version.toString())
         }
-        if (version < 1) throw BackupException("Unsupported backup schema ($version).")
+        if (version < 1) throw BackupException(BackupError.UNSUPPORTED_SCHEMA, version.toString())
         val migrated = migrate(root, version)
         return try {
             BackupFile(
@@ -81,9 +84,9 @@ object BackupCodec {
                 ),
             )
         } catch (e: IllegalArgumentException) {
-            throw BackupException("The backup is damaged: ${e.message}", e)
+            throw BackupException(BackupError.DAMAGED, e.message ?: "", e)
         } catch (e: JSONException) {
-            throw BackupException("The backup is damaged.", e)
+            throw BackupException(BackupError.DAMAGED, cause = e)
         }
     }
 

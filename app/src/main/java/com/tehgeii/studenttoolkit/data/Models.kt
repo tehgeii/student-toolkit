@@ -6,8 +6,10 @@ import com.tehgeii.studenttoolkit.domain.academic.GradeScale
 import com.tehgeii.studenttoolkit.domain.academic.Semester
 import com.tehgeii.studenttoolkit.core.parseNumber
 import com.tehgeii.studenttoolkit.domain.tasks.TaskSort
+import com.tehgeii.studenttoolkit.i18n.AppLanguage
+import com.tehgeii.studenttoolkit.i18n.Lang
 
-enum class ThemeMode(val label: String) { SYSTEM("System"), LIGHT("Light"), DARK("Dark") }
+enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
 /** Optional student profile. Every field may stay empty. */
 data class Profile(
@@ -19,6 +21,7 @@ data class Profile(
 
 data class AppSettings(
     val theme: ThemeMode = ThemeMode.SYSTEM,
+    val language: AppLanguage = AppLanguage.SYSTEM,
     val dynamicColor: Boolean = false,
     val gpaDecimals: Int = 2,
     val gradeScale: GradeScale = GradeScale.DEFAULT,
@@ -32,13 +35,16 @@ data class GradeDraftRow(val id: String, val name: String, val weight: String, v
     fun toComponent() = GradeComponent(name, parseNumber(weight), parseNumber(score))
 }
 
-data class GradeDraft(val course: String = "", val rows: List<GradeDraftRow> = template()) {
+data class GradeDraft(
+    val course: String = "",
+    val rows: List<GradeDraftRow> = template(Lang.resolve(AppLanguage.SYSTEM).indonesian),
+) {
     companion object {
-        fun template(): List<GradeDraftRow> = listOf(
-            GradeDraftRow(newId(), "Attendance", "10", ""),
-            GradeDraftRow(newId(), "Assignment", "20", ""),
-            GradeDraftRow(newId(), "Midterm", "30", ""),
-            GradeDraftRow(newId(), "Final", "40", ""),
+        fun template(indonesian: Boolean): List<GradeDraftRow> = listOf(
+            GradeDraftRow(newId(), if (indonesian) "Kehadiran" else "Attendance", "10", ""),
+            GradeDraftRow(newId(), if (indonesian) "Tugas" else "Assignment", "20", ""),
+            GradeDraftRow(newId(), if (indonesian) "UTS" else "Midterm", "30", ""),
+            GradeDraftRow(newId(), if (indonesian) "UAS" else "Final", "40", ""),
         )
     }
 }

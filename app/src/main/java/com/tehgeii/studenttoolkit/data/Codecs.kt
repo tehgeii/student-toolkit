@@ -10,6 +10,7 @@ import com.tehgeii.studenttoolkit.domain.tasks.Priority
 import com.tehgeii.studenttoolkit.domain.tasks.Subtask
 import com.tehgeii.studenttoolkit.domain.tasks.Task
 import com.tehgeii.studenttoolkit.domain.tasks.TaskSort
+import com.tehgeii.studenttoolkit.i18n.AppLanguage
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -235,6 +236,7 @@ object Codecs {
 
     fun encodeSettings(s: AppSettings): JSONObject = JSONObject()
         .put("theme", s.theme.name)
+        .put("language", s.language.name)
         .put("dynamicColor", s.dynamicColor)
         .put("gpaDecimals", s.gpaDecimals)
         .put("gradeScale", encodeScale(s.gradeScale))
@@ -256,6 +258,7 @@ object Codecs {
         val profile = o.optJSONObject("profile")
         return AppSettings(
             theme = enumOf(o.opt("theme") as? String, defaults.theme),
+            language = enumOf(o.opt("language") as? String, defaults.language),
             dynamicColor = o.bool("dynamicColor", defaults.dynamicColor),
             gpaDecimals = (o.intOrNull("gpaDecimals") ?: 2).coerceIn(2, 3),
             gradeScale = runCatching { decodeScale(o.optJSONArray("gradeScale")) }.getOrNull() ?: defaults.gradeScale,

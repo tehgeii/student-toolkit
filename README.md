@@ -6,6 +6,7 @@
 Student Toolkit is an **Android-only, offline-first** utility app that bundles the small things students do
 every day: grade and GPA (IPS/IPK) calculations, deadlines with reminders, Pomodoro, group randomizers,
 QR codes, converters and quick notes. No account, no internet permission, no tracking: data stays on the phone.
+The app speaks **English and Bahasa Indonesia** — pick one in Settings (the choice is saved).
 
 The full product definition lives in [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md).
 
@@ -21,12 +22,12 @@ then tap **Install**. Later versions update in place.
 |------|--------------|
 | **Home** | Greeting, today's date, *Due soon* deadlines, IPK and focus-today cards, quick tools |
 | **Academic** | Grade calculator with dynamic components and weight validation (✓ 100%, ⚠ under, ✕ over blocks the result) · score target planner with impossible-goal detection · scenario simulator (slider) · IPS per semester (per course or entered directly) · IPK weighted by SKS · GPA target planner · grade converter · configurable grading scale and grade points |
-| **Tasks** | Title, course, deadline, priority, estimated time, steps (subtasks), notes · sections Overdue → Today → Upcoming → No deadline → Completed · sorting (smart, deadline, priority, newest) · reminders (10 min … 1 week before, combinable) · undo on complete/delete |
+| **Tasks** | Title, course, deadline, priority, estimated time, steps (subtasks), notes · sections Overdue → Today → Upcoming → No deadline → Completed · sorting (smart, deadline, priority, newest) · reminders (presets from 10 min to 1 week before, or custom such as "2 h 15 min before"; combinable) · rescheduled automatically after reboot, app update or force stop · undo on complete/delete |
 | **Focus** | Pomodoro (25/5, 50/10, 90/15, custom; session x of 4; start/pause/resume/reset/skip) with daily and weekly stats · timer with presets and custom duration · stopwatch with laps |
 | **Classroom** | Fair group randomizer (number of groups *or* people per group, balanced sizes such as 4+3+3) · presentation order · task assigner that **asks** what to do when people ≠ tasks |
 | **Utilities** | QR generator (text, URL, Wi-Fi with password warning, email, phone) with save/share/copy · unit converter (length, weight, temperature, time, SI vs IEC storage, data rate, speed, area, volume) · percentage calculator · notes with autosave and search |
 | **Data** | Local storage · export/share/import `StudentToolkitBackup.json` (schema-versioned, validated, merge or replace, safety copy before restore) |
-| **Settings** | Optional profile, System/Light/Dark theme, Material You colors (Android 12+), GPA decimals (2/3), grading scale, notification and precise-alarm status, default reminders, about |
+| **Settings** | Language (follow system / English / Bahasa Indonesia), optional profile, System/Light/Dark theme, Material You colors (Android 12+), GPA decimals (2/3), grading scale, notification and precise-alarm status, default reminders, about & open-source licenses — all saved permanently |
 
 ## Built to be light
 
@@ -52,6 +53,7 @@ app/src/main/java/com/tehgeii/studenttoolkit/
 ├── core/        formatting & input parsing (display-only rounding)
 ├── domain/      academic, tasks, classroom, tools, focus, notes — no Android imports
 ├── data/        codecs, atomic JSON stores, repositories, backup (schema v1 + migration hook)
+├── i18n/        English / Bahasa Indonesia texts, side by side: t("Tasks", "Tugas")
 ├── notify/      notification channels, AlarmManager scheduling, receivers, focus engine
 └── ui/          navigation, theme, components and one package per feature
 ```
@@ -70,6 +72,7 @@ Formulas are written out in the domain layer, for example
 | Keyboard | Numeric keyboards for numbers, `imePadding` everywhere, decimal comma accepted (`3,5`) |
 | Time zones | Deadlines are stored as instants and shown in the device time zone (nothing hard-coded to Asia/Jakarta) |
 | Cloud backup | `allowBackup="false"`: nothing is sent to the cloud automatically; backups are manual |
+| Language | In-app choice stored with the other settings; switching is instant (no restart) and also updates notification texts |
 
 ### Permissions
 
@@ -80,6 +83,16 @@ Formulas are written out in the domain layer, for example
 | `SCHEDULE_EXACT_ALARM` | Optional precise timer alerts on Android 12+. Without it the app falls back to inexact alarms and explains the possible delay |
 
 No internet, camera, storage, contacts or location permissions.
+
+### Security & privacy
+
+* **No network access at all** (no `INTERNET` permission), so grades, tasks and notes cannot leave the phone unless you share a backup yourself.
+* Backups are parsed as untrusted data: size limits, schema check, full validation before anything is changed, and a safety copy before restore.
+* Only the launcher activity and the boot receiver (system broadcasts only) are exported; alarms use immutable `PendingIntent`s;
+  the `FileProvider` exposes just the share cache folder.
+* Screens opened from outside the app are limited to the routes the app's own notifications use.
+* Wi-Fi QR content (which contains the password) is marked sensitive when copied, so it is hidden from clipboard previews.
+* Release APKs are minified with R8 and signed with a key that lives only in GitHub secrets.
 
 ## Build
 
@@ -119,13 +132,22 @@ Keep a private backup of the keystore and its passwords: every update must be si
 
 ## Status
 
-**v0.9.0 — feature-complete MVP** (roadmap v0.1 – v0.6: foundation, academic, productivity, classroom, utilities, data safety).
-Domain logic and backup validation are covered by unit tests. Before tagging **v1.0** the app still needs the real-device pass
-from the spec: small/normal/large phones, minimum and current Android versions, light/dark, rotation, notifications with the
-app closed and after reboot, and installation of the signed release APK.
+**v0.10.0** — feature-complete MVP (roadmap v0.1 – v0.6) plus Bahasa Indonesia, custom reminders and reliability/security hardening.
+Domain logic, translations and backup validation are covered by unit tests, and the signed release APK installs and runs on a
+real device. Before tagging **v1.0**, finish the spec's device pass: small/large phones and a tablet, the minimum Android version
+(8.0), rotation, and notifications with the app closed, after a reboot and after a force stop.
 
 Not in scope for the MVP (by design): accounts, cloud sync, AI features, widgets, Quick Settings tile, iOS or desktop builds.
 
+## License
+
+Student Toolkit is **source-available, not open source**. You may view, download and review the code and use the official
+APK for free, but you may **not** copy or modify the code, sell the app or the code, or publish it under another name.
+See [`LICENSE`](LICENSE) for the full terms (English, with an Indonesian summary).
+
+Third-party libraries keep their own licenses (Apache 2.0 / MIT); they are listed in the app under
+*Settings → About → Open-source licenses*.
+
 ---
 
-Made by [tehgeii](https://github.com/tehgeii) · [Portfolio](https://tgopremium.my.id)
+© 2026–present [tehgeii](https://github.com/tehgeii) (TGI) · [Portfolio](https://tgopremium.my.id) · All rights reserved.

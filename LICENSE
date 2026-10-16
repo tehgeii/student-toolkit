@@ -1,0 +1,139 @@
+Student Toolkit License (Source-Available, All Rights Reserved)
+
+Copyright (c) 2026-present tehgeii (TGI). All rights reserved.
+
+Project:   Student Toolkit — Android student utility app
+Author:    tehgeii (TGI) — https://github.com/tehgeii
+Website:   https://tgopremium.my.id
+Source:    https://github.com/tehgeii/student-toolkit
+Releases:  https://github.com/tehgeii/student-toolkit/releases
+
+-------------------------------------------------------------------------------
+RINGKASAN (BAHASA INDONESIA)
+-------------------------------------------------------------------------------
+Ringkasan ini hanya untuk memudahkan pemahaman. Yang berlaku secara hukum adalah
+teks lisensi berbahasa Inggris di bawahnya.
+
+BOLEH:
+  - Melihat, membaca, dan mempelajari kode sumber ini.
+  - Mengunduh (download/clone) repositori untuk dipelajari dan di-review sendiri.
+  - Mengunduh, memasang, dan memakai aplikasi resmi (APK dari Releases) secara gratis.
+  - Membagikan tautan repositori atau Releases resmi, dan membagikan APK resmi yang
+    tidak diubah secara gratis (misalnya ke teman).
+  - Melaporkan bug atau memberi saran lewat Issues di repositori resmi.
+
+TIDAK BOLEH (tanpa izin tertulis dari pemilik):
+  - Mengambil, menyalin, atau memakai ulang kode (seluruh atau sebagian) di proyek lain.
+  - Mengedit/memodifikasi kode, lalu menyebarkan atau menerbitkan hasilnya.
+  - Menjual, menyewakan, memasang iklan, atau mencari keuntungan dari kode maupun
+    aplikasi ini dalam bentuk apa pun — walaupun aplikasi resminya gratis selamanya.
+  - Menerbitkan ulang aplikasi ini (atau turunannya) dengan nama, logo, atau pembuat
+    lain, mengaku sebagai pembuatnya, atau menghapus nama pemilik dan hak cipta.
+  - Mengunggah ulang aplikasi ini ke Play Store atau toko aplikasi lain.
+
+-------------------------------------------------------------------------------
+LICENSE TERMS (ENGLISH — LEGALLY BINDING)
+-------------------------------------------------------------------------------
+
+1. Definitions
+
+   "Owner" means tehgeii (TGI), the author and copyright holder of Student Toolkit.
+   "Software" means the Student Toolkit source code, documentation, assets (including
+   the name "Student Toolkit", the app icon and other branding), and any compiled
+   application (APK) built from it, in whole or in part.
+   "Official Release" means an unmodified APK published by the Owner at
+   https://github.com/tehgeii/student-toolkit/releases.
+   "You" means any person or organization exercising rights under this License.
+
+2. Ownership
+
+   The Software is licensed, not sold. The Owner retains all right, title and
+   interest in and to the Software. No rights are granted to You except those
+   expressly stated in Section 3. All other rights are reserved.
+
+3. What You May Do
+
+   Subject to the conditions of this License, You may, free of charge:
+
+   a) View, read and study the source code, for learning, review, security
+      research or evaluation;
+   b) Download or clone the repository to Your own devices for the purposes in (a);
+   c) Download, install and use Official Releases on Your own devices for personal,
+      educational or classroom use;
+   d) Share links to the official repository and Official Releases, and give
+      unmodified copies of an Official Release to others free of charge;
+   e) Report issues and suggest improvements in the official repository.
+
+4. What You May Not Do
+
+   Without the Owner's prior written permission, You may not:
+
+   a) Copy, reuse or incorporate the source code, or any substantial part of it, in
+      any other software, project, product or service;
+   b) Modify, adapt, translate, or create derivative works of the Software, or
+      distribute, publish or make available any modified version;
+   c) Sell, resell, rent, lease, sublicense or otherwise commercialize the Software
+      or any part of it, including charging for access, bundling it with paid
+      products, or adding advertisements or in-app purchases — even though the
+      Official Releases are free of charge;
+   d) Publish, upload or distribute the Software or any derivative under a different
+      name, author, publisher, package name or brand, or on any app store or
+      download site other than the official repository;
+   e) Claim, imply or present the Software, or any part of it, as Your own work, or
+      remove, hide or alter any copyright notice, author attribution, the name
+      "Student Toolkit" or the app icon;
+   f) Use the name "Student Toolkit", the Owner's name or the app icon to endorse or
+      promote any other product or service.
+
+   Forking the repository on GitHub is permitted only to the extent required by the
+   GitHub Terms of Service. A fork does not grant any right beyond Section 3.
+
+5. Contributions
+
+   If You submit an issue, suggestion or pull request to the official repository,
+   You grant the Owner a perpetual, worldwide, irrevocable, royalty-free license to
+   use, modify and distribute that contribution as part of the Software, and You
+   confirm that You have the right to grant it. Submitting a contribution does not
+   give You any additional rights to the Software.
+
+6. Third-Party Components
+
+   The Software uses third-party open-source components (such as AndroidX / Jetpack
+   Compose, Kotlin, kotlinx.coroutines, Material Icons and the QR Code generator
+   library by Project Nayuki). Those components remain under their own licenses
+   (Apache License 2.0 or MIT License), which are listed inside the app under
+   Settings > About > Open-source licenses. This License does not restrict any
+   rights granted by those licenses for those components.
+
+7. Termination
+
+   Any use of the Software in violation of this License automatically terminates
+   all permissions granted to You. Upon termination You must stop using the
+   Software and delete all copies of it, except unmodified Official Releases
+   installed for personal use if the Owner allows it in writing.
+
+8. Disclaimer of Warranty
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+   FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. Grade, GPA (IPS/IPK) and other
+   calculations are provided as a convenience; always confirm official results with
+   Your institution.
+
+9. Limitation of Liability
+
+   IN NO EVENT SHALL THE OWNER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+   CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE,
+   INCLUDING LOSS OF DATA, MISSED DEADLINES OR REMINDERS.
+
+10. Governing Law
+
+   This License is governed by the laws of the Republic of Indonesia, including
+   Law No. 28 of 2014 on Copyright (Undang-Undang Nomor 28 Tahun 2014 tentang Hak
+   Cipta).
+
+11. Permissions and Contact
+
+   To request permission for any use not allowed above, contact the Owner through
+   https://github.com/tehgeii or https://tgopremium.my.id.

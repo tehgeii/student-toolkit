@@ -12,9 +12,6 @@ import java.util.Locale
  * Display formatting. Rounding happens here only, never inside calculations.
  */
 object Fmt {
-    private val dayFormat = DateTimeFormatter.ofPattern("EEE, d MMM yyyy", Locale.ENGLISH)
-    private val longDayFormat = DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale.ENGLISH)
-    private val shortDayFormat = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH)
     private val timeFormat = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH)
 
     /** Rounds half-up to [decimals] places and trims trailing zeros (84.50 -> 84.5). */
@@ -30,17 +27,6 @@ object Fmt {
     fun fixed(value: Double, decimals: Int): String {
         if (value.isNaN() || value.isInfinite()) return "–"
         return BigDecimal.valueOf(value).setScale(decimals, RoundingMode.HALF_UP).toPlainString()
-    }
-
-    /** 210 -> "3h 30m", 45 -> "45m", 120 -> "2h". */
-    fun duration(minutes: Int): String {
-        val h = minutes / 60
-        val m = minutes % 60
-        return when {
-            h == 0 -> "${m}m"
-            m == 0 -> "${h}h"
-            else -> "${h}h ${m}m"
-        }
     }
 
     /** Countdown text: "24:32" or "1:05:09". Rounds up so a timer never shows 00:00 while running. */
@@ -64,19 +50,17 @@ object Fmt {
         else String.format(Locale.US, "%02d:%02d.%d", m, s, tenths)
     }
 
-    fun date(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault()): String =
-        dayFormat.format(Instant.ofEpochMilli(epochMillis).atZone(zone))
+    fun date(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault(), locale: Locale = Locale.ENGLISH): String =
+        DateTimeFormatter.ofPattern("EEE, d MMM yyyy", locale).format(Instant.ofEpochMilli(epochMillis).atZone(zone))
 
-    fun longDate(date: LocalDate): String = longDayFormat.format(date)
-
-    fun shortDate(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault()): String =
-        shortDayFormat.format(Instant.ofEpochMilli(epochMillis).atZone(zone))
+    fun longDate(date: LocalDate, locale: Locale = Locale.ENGLISH): String =
+        DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", locale).format(date)
 
     fun time(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault()): String =
         timeFormat.format(Instant.ofEpochMilli(epochMillis).atZone(zone))
 
-    fun dateTime(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault()): String =
-        "${date(epochMillis, zone)} · ${time(epochMillis, zone)}"
+    fun dateTime(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault(), locale: Locale = Locale.ENGLISH): String =
+        "${date(epochMillis, zone, locale)} · ${time(epochMillis, zone)}"
 }
 
 /** Parses user input, accepting both "3.5" and "3,5". Returns null for blank or invalid input. */

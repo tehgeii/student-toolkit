@@ -29,7 +29,7 @@ data class Countdown(
     fun reset(): Countdown = Countdown(durationMs)
 }
 
-enum class FocusPhase(val label: String) { FOCUS("Focus"), BREAK("Break") }
+enum class FocusPhase { FOCUS, BREAK }
 
 data class PomodoroState(
     val focusMinutes: Int = 25,

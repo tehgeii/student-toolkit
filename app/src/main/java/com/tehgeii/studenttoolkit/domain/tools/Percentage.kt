@@ -1,15 +1,7 @@
 package com.tehgeii.studenttoolkit.domain.tools
 
-enum class PercentMode(val label: String, val firstLabel: String, val secondLabel: String) {
-    PERCENT_OF("X% of Y", "Percent (%)", "Value"),
-    WHAT_PERCENT("X is what % of Y", "Part (X)", "Whole (Y)"),
-    CHANGE("% change", "From", "To"),
-    DISCOUNT("Discount", "Price", "Discount (%)"),
-    INCREASE("Increase by %", "Value", "Increase (%)"),
-    DECREASE("Decrease by %", "Value", "Decrease (%)"),
-}
+enum class PercentMode { PERCENT_OF, WHAT_PERCENT, CHANGE, DISCOUNT, INCREASE, DECREASE }
 
-data class PercentResult(val value: Double, val explanation: String, val extra: Double? = null)
 
 object Percentage {
     fun percentOf(percent: Double, value: Double): Double = value * percent / 100.0

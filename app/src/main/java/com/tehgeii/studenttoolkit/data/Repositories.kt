@@ -123,6 +123,15 @@ class AcademicRepository(private val repo: JsonRepository<AcademicData>) {
         return old
     }
 
+    /** Deletes a semester that is still exactly as "Add" created it (default name, no data). */
+    fun removeIfUntouched(id: String) {
+        val s = semester(id) ?: return
+        val untouched = Regex("^Semester \\d+$").matches(s.name.trim()) &&
+            s.manualGpa == null && s.manualCredits == null &&
+            s.courses.all { it.name.isBlank() && it.credits <= 0 && it.grade.isBlank() }
+        if (untouched) deleteSemester(id)
+    }
+
     fun restoreSemester(semester: Semester) {
         if (semester(semester.id) == null) repo.update { it.copy(semesters = it.semesters + semester) }
     }

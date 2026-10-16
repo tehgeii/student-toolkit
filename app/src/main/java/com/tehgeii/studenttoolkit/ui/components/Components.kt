@@ -77,6 +77,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.tehgeii.studenttoolkit.core.sanitizeDecimal
 import com.tehgeii.studenttoolkit.core.sanitizeInt
+import com.tehgeii.studenttoolkit.ui.LocalLang
 import kotlinx.coroutines.delay
 
 /** Content never stretches wider than this on tablets and in landscape. */
@@ -99,7 +100,7 @@ fun AppScaffold(
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = LocalLang.current("Back", "Kembali"))
                         }
                     }
                 },
@@ -280,7 +281,7 @@ fun <T> DropdownField(
                     color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    if (selected == null) "Choose" else optionLabel(selected),
+                    if (selected == null) LocalLang.current("Choose", "Pilih") else optionLabel(selected),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
@@ -324,7 +325,7 @@ fun ConfirmDialog(
                 Text(confirmLabel, color = if (destructive) MaterialTheme.colorScheme.error else Color.Unspecified)
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(LocalLang.current("Cancel", "Batal")) } },
     )
 }
 

@@ -29,6 +29,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.tehgeii.studenttoolkit.notify.Alarms
 import com.tehgeii.studenttoolkit.notify.Notifier
+import com.tehgeii.studenttoolkit.ui.LocalLang
 import com.tehgeii.studenttoolkit.ui.Platform
 
 object PermissionIntents {
@@ -66,22 +67,31 @@ fun rememberNotificationsAllowed(): Pair<Boolean, () -> Unit> {
 /** Shown only when notifications are needed for a feature but currently blocked. */
 @Composable
 fun NotificationPermissionCard(reason: String) {
+    val t = LocalLang.current
     val (allowed, request) = rememberNotificationsAllowed()
     if (allowed) return
-    PermissionCard(text = "Notifications are off. $reason", action = "Allow notifications", onAction = request)
+    PermissionCard(
+        text = t("Notifications are off. ", "Notifikasi sedang mati. ") + reason,
+        action = t("Allow notifications", "Izinkan notifikasi"),
+        onAction = request,
+    )
 }
 
 /** Android 12+ may delay alarms unless the user allows precise ones; explained instead of assumed. */
 @Composable
 fun ExactAlarmCard() {
     val context = LocalContext.current
+    val t = LocalLang.current
     var exact by remember { mutableStateOf(Alarms.canScheduleExact(context)) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { exact = Alarms.canScheduleExact(context) }
     val intent = PermissionIntents.exactAlarmSettings(context)
     if (exact || intent == null) return
     PermissionCard(
-        text = "Precise alarms are off, so the end alert may arrive a few minutes late. The timer itself stays accurate.",
-        action = "Allow precise alarms",
+        text = t(
+            "Precise alarms are off, so the end alert may arrive a few minutes late. The timer itself stays accurate.",
+            "Alarm presisi mati, jadi notifikasi selesai bisa telat beberapa menit. Timernya sendiri tetap akurat.",
+        ),
+        action = t("Allow precise alarms", "Izinkan alarm presisi"),
         onAction = { Platform.startSafely(context, intent) },
     )
 }

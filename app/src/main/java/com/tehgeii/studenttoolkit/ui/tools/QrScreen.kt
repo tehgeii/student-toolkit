@@ -45,6 +45,10 @@ import com.tehgeii.studenttoolkit.domain.tools.QrPayload
 import com.tehgeii.studenttoolkit.domain.tools.QrPayloadResult
 import com.tehgeii.studenttoolkit.domain.tools.QrType
 import com.tehgeii.studenttoolkit.domain.tools.WifiSecurity
+import com.tehgeii.studenttoolkit.i18n.qrError
+import com.tehgeii.studenttoolkit.i18n.qrType
+import com.tehgeii.studenttoolkit.i18n.wifiSecurity
+import com.tehgeii.studenttoolkit.ui.LocalLang
 import com.tehgeii.studenttoolkit.ui.LocalMessenger
 import com.tehgeii.studenttoolkit.ui.Platform
 import com.tehgeii.studenttoolkit.ui.components.AppIcons
@@ -101,6 +105,7 @@ object QrRenderer {
 
 @Composable
 fun QrScreen(onBack: () -> Unit) {
+    val t = LocalLang.current
     val context = LocalContext.current
     val messenger = LocalMessenger.current
     val scope = rememberCoroutineScope()
@@ -141,53 +146,53 @@ fun QrScreen(onBack: () -> Unit) {
                         context.contentResolver.openOutputStream(uri)?.use { image.compress(Bitmap.CompressFormat.PNG, 100, it) } == true
                     }.getOrDefault(false)
                 }
-                messenger.show(if (ok) "✓ QR image saved" else "Could not save the image. Nothing was changed.")
+                messenger.show(if (ok) t("✓ QR image saved", "✓ Gambar QR disimpan") else t("Could not save the image. Nothing was changed.", "Gambar gagal disimpan. Tidak ada yang berubah."))
             }
         }
     }
 
-    AppScaffold(title = "QR generator", onBack = onBack) { padding ->
+    AppScaffold(title = t("QR generator", "Pembuat QR"), onBack = onBack) { padding ->
         FormColumn(padding) {
-            ChoiceChips(QrType.entries.toList(), type, { it.label }, { type = it })
+            ChoiceChips(QrType.entries.toList(), type, { t.qrType(it) }, { type = it })
             when (type) {
-                QrType.TEXT -> TextInput(text, { text = it }, "Text", singleLine = false, minLines = 3)
+                QrType.TEXT -> TextInput(text, { text = it }, t("Text", "Teks"), singleLine = false, minLines = 3)
                 QrType.URL -> TextInput(
                     url, { url = it }, "URL", placeholder = "example.com",
                     capitalization = KeyboardCapitalization.None, keyboardType = KeyboardType.Uri,
                 )
                 QrType.WIFI -> {
-                    TextInput(ssid, { ssid = it }, "Network name (SSID)", capitalization = KeyboardCapitalization.None)
-                    DropdownField("Security", WifiSecurity.entries.toList(), security, { it.label }, { security = it }, Modifier.fillMaxWidth())
+                    TextInput(ssid, { ssid = it }, t("Network name (SSID)", "Nama jaringan (SSID)"), capitalization = KeyboardCapitalization.None)
+                    DropdownField(t("Security", "Keamanan"), WifiSecurity.entries.toList(), security, { t.wifiSecurity(it) }, { security = it }, Modifier.fillMaxWidth())
                     if (security != WifiSecurity.NONE) {
                         TextInput(
-                            password, { password = it }, "Password",
+                            password, { password = it }, t("Password", "Kata sandi"),
                             capitalization = KeyboardCapitalization.None, keyboardType = KeyboardType.Password,
                         )
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = hidden, onCheckedChange = { hidden = it })
-                        Text("Hidden network")
+                        Text(t("Hidden network", "Jaringan tersembunyi"))
                     }
-                    InfoCard("This QR code contains your Wi-Fi password. Share carefully.", emoji = "🔐")
+                    InfoCard(t("This QR code contains your Wi-Fi password. Share carefully.", "Kode QR ini berisi password Wi-Fi kamu. Bagikan dengan hati-hati."), emoji = "🔐")
                 }
                 QrType.EMAIL -> {
                     TextInput(
-                        emailTo, { emailTo = it }, "To",
+                        emailTo, { emailTo = it }, t("To", "Kepada"),
                         capitalization = KeyboardCapitalization.None, keyboardType = KeyboardType.Email,
                     )
-                    TextInput(subject, { subject = it }, "Subject (optional)")
-                    TextInput(body, { body = it }, "Message (optional)", singleLine = false, minLines = 2)
+                    TextInput(subject, { subject = it }, t("Subject (optional)", "Subjek (opsional)"))
+                    TextInput(body, { body = it }, t("Message (optional)", "Pesan (opsional)"), singleLine = false, minLines = 2)
                 }
                 QrType.PHONE -> TextInput(
-                    phone, { phone = it }, "Phone number", placeholder = "+62 812 3456 7890",
+                    phone, { phone = it }, t("Phone number", "Nomor telepon"), placeholder = "+62 812 3456 7890",
                     keyboardType = KeyboardType.Phone,
                 )
             }
 
             when (result) {
-                is QrPayloadResult.Error -> Text(result.message, color = MaterialTheme.colorScheme.error)
+                is QrPayloadResult.Error -> Text(t.qrError(result.error), color = MaterialTheme.colorScheme.error)
                 QrPayloadResult.Empty -> Text(
-                    "Fill in the fields to create a QR code. Everything is generated on your phone.",
+                    t("Fill in the fields to create a QR code. Everything is generated on your phone.", "Isi kolomnya untuk membuat kode QR. Semua dibuat langsung di HP-mu."),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -199,7 +204,7 @@ fun QrScreen(onBack: () -> Unit) {
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Image(
                         bitmap = image.asImageBitmap(),
-                        contentDescription = "QR code preview",
+                        contentDescription = t("QR code preview", "Pratinjau kode QR"),
                         filterQuality = FilterQuality.None,
                         modifier = Modifier
                             .size(260.dp)
@@ -211,7 +216,7 @@ fun QrScreen(onBack: () -> Unit) {
                     OutlinedButton(onClick = { saveLauncher.launch("qr-code.png") }, modifier = Modifier.weight(1f)) {
                         Icon(AppIcons.Download, contentDescription = null)
                         Spacer(Modifier.width(4.dp))
-                        Text("Save")
+                        Text(t("Save", "Simpan"))
                     }
                     OutlinedButton(
                         onClick = {
@@ -222,30 +227,31 @@ fun QrScreen(onBack: () -> Unit) {
                                         File(dir, "qr-code.png").also { f -> f.outputStream().use { image.compress(Bitmap.CompressFormat.PNG, 100, it) } }
                                     }.getOrNull()
                                 }
-                                if (file != null) Platform.shareFile(context, file, "image/png", "Share QR code")
-                                else messenger.show("Could not prepare the image.")
+                                if (file != null) Platform.shareFile(context, file, "image/png", t("Share QR code", "Bagikan kode QR"))
+                                else messenger.show(t("Could not prepare the image.", "Gambar gagal disiapkan."))
                             }
                         },
                         modifier = Modifier.weight(1f),
                     ) {
                         Icon(Icons.Filled.Share, contentDescription = null)
                         Spacer(Modifier.width(4.dp))
-                        Text("Share")
+                        Text(t("Share", "Bagikan"))
                     }
                     OutlinedButton(
                         onClick = {
-                            Platform.copy(context, "QR content", payload)
-                            messenger.show("✓ Copied")
+                            // Wi-Fi codes contain the password: keep it out of clipboard previews.
+                            Platform.copy(context, t("QR content", "Isi QR"), payload, sensitive = type == QrType.WIFI)
+                            messenger.show(t("✓ Copied", "✓ Disalin"))
                         },
                         modifier = Modifier.weight(1f),
                     ) {
                         Icon(AppIcons.Copy, contentDescription = null)
                         Spacer(Modifier.width(4.dp))
-                        Text("Copy")
+                        Text(t("Copy", "Salin"))
                     }
                 }
             } else if (current != null) {
-                Text("This content is too long for a QR code.", color = MaterialTheme.colorScheme.error)
+                Text(t("This content is too long for a QR code.", "Isinya terlalu panjang untuk kode QR."), color = MaterialTheme.colorScheme.error)
             }
         }
     }

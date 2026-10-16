@@ -19,7 +19,7 @@ class AlarmReceiver : BroadcastReceiver() {
                     id = intent.dataString.hashCode(),
                     channel = Notifier.CHANNEL_DEADLINES,
                     title = task.title,
-                    text = intent.getStringExtra(EXTRA_TEXT) ?: "Deadline reminder",
+                    text = intent.getStringExtra(EXTRA_TEXT) ?: container.lang()("Deadline reminder", "Pengingat deadline"),
                     route = Routes.task(taskId),
                 )
             }

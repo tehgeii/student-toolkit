@@ -3,17 +3,19 @@ package com.tehgeii.studenttoolkit.domain.tools
 import java.net.URI
 import java.net.URLEncoder
 
-enum class QrType(val label: String) { TEXT("Text"), URL("URL"), WIFI("Wi-Fi"), EMAIL("Email"), PHONE("Phone") }
+enum class QrType { TEXT, URL, WIFI, EMAIL, PHONE }
 
-enum class WifiSecurity(val label: String, val code: String) {
-    WPA("WPA/WPA2/WPA3", "WPA"),
-    WEP("WEP", "WEP"),
-    NONE("None (open)", "nopass"),
+enum class WifiSecurity(val code: String) {
+    WPA("WPA"),
+    WEP("WEP"),
+    NONE("nopass"),
 }
+
+enum class QrError { URL_SPACES, URL_INVALID, WIFI_PASSWORD_MISSING, WIFI_PASSWORD_SHORT, EMAIL_INVALID, PHONE_INVALID, TOO_LONG }
 
 sealed interface QrPayloadResult {
     data class Ok(val payload: String) : QrPayloadResult
-    data class Error(val message: String) : QrPayloadResult
+    data class Error(val error: QrError) : QrPayloadResult
     data object Empty : QrPayloadResult
 }
 
@@ -30,20 +32,20 @@ object QrPayload {
     fun url(input: String): QrPayloadResult {
         val trimmed = input.trim()
         if (trimmed.isEmpty()) return QrPayloadResult.Empty
-        if (trimmed.any { it.isWhitespace() }) return QrPayloadResult.Error("A URL cannot contain spaces.")
+        if (trimmed.any { it.isWhitespace() }) return QrPayloadResult.Error(QrError.URL_SPACES)
         val withScheme = if (Regex("^[a-zA-Z][a-zA-Z0-9+.-]*://").containsMatchIn(trimmed)) trimmed else "https://$trimmed"
         val host = runCatching { URI(withScheme).host }.getOrNull()
         if (host.isNullOrBlank() || (!host.contains('.') && host != "localhost")) {
-            return QrPayloadResult.Error("This doesn't look like a valid URL.")
+            return QrPayloadResult.Error(QrError.URL_INVALID)
         }
         return checkLength(withScheme)
     }
 
     fun wifi(ssid: String, password: String, security: WifiSecurity, hidden: Boolean): QrPayloadResult {
         if (ssid.isEmpty()) return QrPayloadResult.Empty
-        if (security != WifiSecurity.NONE && password.isEmpty()) return QrPayloadResult.Error("Enter the Wi-Fi password.")
+        if (security != WifiSecurity.NONE && password.isEmpty()) return QrPayloadResult.Error(QrError.WIFI_PASSWORD_MISSING)
         if (security == WifiSecurity.WPA && password.length < 8) {
-            return QrPayloadResult.Error("WPA passwords are at least 8 characters.")
+            return QrPayloadResult.Error(QrError.WIFI_PASSWORD_SHORT)
         }
         val builder = StringBuilder("WIFI:T:").append(security.code).append(';')
         builder.append("S:").append(escapeWifi(ssid)).append(';')
@@ -56,7 +58,7 @@ object QrPayload {
     fun email(to: String, subject: String, body: String): QrPayloadResult {
         val address = to.trim()
         if (address.isEmpty()) return QrPayloadResult.Empty
-        if (!Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$").matches(address)) return QrPayloadResult.Error("Enter a valid email address.")
+        if (!Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$").matches(address)) return QrPayloadResult.Error(QrError.EMAIL_INVALID)
         val params = buildList {
             if (subject.isNotBlank()) add("subject=" + encode(subject))
             if (body.isNotBlank()) add("body=" + encode(body))
@@ -68,7 +70,7 @@ object QrPayload {
     fun phone(number: String): QrPayloadResult {
         val cleaned = number.filterNot { it == ' ' || it == '-' || it == '(' || it == ')' || it == '.' }
         if (cleaned.isEmpty()) return QrPayloadResult.Empty
-        if (!Regex("^\\+?[0-9]{3,15}$").matches(cleaned)) return QrPayloadResult.Error("Enter a valid phone number.")
+        if (!Regex("^\\+?[0-9]{3,15}$").matches(cleaned)) return QrPayloadResult.Error(QrError.PHONE_INVALID)
         return QrPayloadResult.Ok("tel:$cleaned")
     }
 
@@ -84,7 +86,7 @@ object QrPayload {
 
     private fun checkLength(payload: String): QrPayloadResult =
         if (payload.toByteArray(Charsets.UTF_8).size > MAX_BYTES) {
-            QrPayloadResult.Error("Too long for a QR code (max about $MAX_BYTES bytes).")
+            QrPayloadResult.Error(QrError.TOO_LONG)
         } else {
             QrPayloadResult.Ok(payload)
         }

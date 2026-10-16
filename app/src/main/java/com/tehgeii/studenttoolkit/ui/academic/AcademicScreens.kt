@@ -25,6 +25,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +33,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,7 +53,11 @@ import com.tehgeii.studenttoolkit.domain.academic.GpaTarget
 import com.tehgeii.studenttoolkit.domain.academic.GradeBand
 import com.tehgeii.studenttoolkit.domain.academic.GradeScale
 import com.tehgeii.studenttoolkit.domain.academic.Semester
+import com.tehgeii.studenttoolkit.i18n.Lang
+import com.tehgeii.studenttoolkit.i18n.gpaInvalid
+import com.tehgeii.studenttoolkit.i18n.scaleProblem
 import com.tehgeii.studenttoolkit.ui.LocalContainer
+import com.tehgeii.studenttoolkit.ui.LocalLang
 import com.tehgeii.studenttoolkit.ui.LocalMessenger
 import com.tehgeii.studenttoolkit.ui.Navigator
 import com.tehgeii.studenttoolkit.ui.Routes
@@ -78,6 +84,7 @@ class AcademicViewModel(private val repo: AcademicRepository, private val settin
     fun updateSemester(id: String, transform: (Semester) -> Semester) = repo.updateSemester(id, transform)
     fun deleteSemester(id: String): Semester? = repo.deleteSemester(id)
     fun restoreSemester(semester: Semester) = repo.restoreSemester(semester)
+    fun removeIfUntouched(id: String) = repo.removeIfUntouched(id)
     fun updateDraft(transform: (GradeDraft) -> GradeDraft) = repo.updateDraft(transform)
     fun updateScale(scale: GradeScale) = settingsRepo.update { it.copy(gradeScale = scale) }
 }
@@ -92,38 +99,54 @@ fun academicViewModel(): AcademicViewModel {
 
 @Composable
 fun AcademicScreen(nav: Navigator) {
+    val t = LocalLang.current
     val vm = academicViewModel()
     val data by vm.data.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scale = settings.gradeScale
     val cumulative = GpaCalculator.cumulative(data.semesters, scale)
 
-    AppScaffold(title = "Academic") { padding ->
+    AppScaffold(title = t("Academic", "Akademik")) { padding ->
         ListColumn(padding) {
             item {
                 ResultCard(Modifier.readable()) {
-                    Text("Cumulative GPA (IPK)", style = MaterialTheme.typography.labelLarge)
+                    Text(t("Cumulative GPA (IPK)", "Indeks Prestasi Kumulatif (IPK)"), style = MaterialTheme.typography.labelLarge)
                     Text(
                         cumulative.gpa?.let { Fmt.fixed(it, settings.gpaDecimals) } ?: "—",
                         style = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        if (cumulative.totalCredits == 0) "Add a semester to calculate your GPA."
-                        else "${cumulative.totalCredits} SKS · ${data.semesters.size} semester(s) · weighted by SKS",
+                        if (cumulative.totalCredits == 0) {
+                            t("Add a semester to calculate your GPA.", "Tambahkan semester untuk menghitung IPK.")
+                        } else {
+                            "${cumulative.totalCredits} SKS · ${data.semesters.size} semester · " + t("weighted by SKS", "dibobot SKS")
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
             }
-            item { ToolRow("📊", "Grade calculator", "Final score, target score & scenarios") { nav.navigate(Routes.GRADE) } }
-            item { ToolRow("🎯", "GPA target planner", "What you need to reach a target IPK") { nav.navigate(Routes.GPA_GOAL) } }
-            item { ToolRow("🔁", "Grade converter", "Score → letter using your scale") { nav.navigate(Routes.GRADE_CONVERTER) } }
+            item {
+                ToolRow("📊", t("Grade calculator", "Kalkulator nilai"), t("Final score, target score & scenarios", "Nilai akhir, target nilai & simulasi")) {
+                    nav.navigate(Routes.GRADE)
+                }
+            }
+            item {
+                ToolRow("🎯", t("GPA target planner", "Target IPK"), t("What you need to reach a target IPK", "Nilai yang dibutuhkan untuk mencapai target IPK")) {
+                    nav.navigate(Routes.GPA_GOAL)
+                }
+            }
+            item {
+                ToolRow("🔁", t("Grade converter", "Konversi nilai"), t("Score → letter using your scale", "Angka → huruf sesuai skala nilaimu")) {
+                    nav.navigate(Routes.GRADE_CONVERTER)
+                }
+            }
             item {
                 Row(Modifier.readable(), verticalAlignment = Alignment.CenterVertically) {
-                    SectionTitle("Semesters (IPS)", Modifier.weight(1f))
+                    SectionTitle(t("Semesters (IPS)", "Semester (IPS)"), Modifier.weight(1f))
                     TextButton(onClick = { nav.navigate(Routes.semester(vm.createSemester())) }) {
                         Icon(Icons.Filled.Add, contentDescription = null)
-                        Text("Add")
+                        Text(t("Add", "Tambah"))
                     }
                 }
             }
@@ -131,9 +154,9 @@ fun AcademicScreen(nav: Navigator) {
                 item {
                     EmptyState(
                         emoji = "📚",
-                        title = "No semesters yet",
-                        message = "Add a semester and its courses to calculate your IPS and IPK.",
-                        actionLabel = "Add semester",
+                        title = t("No semesters yet", "Belum ada semester"),
+                        message = t("Add a semester and its courses to calculate your IPS and IPK.", "Tambahkan semester dan mata kuliahnya untuk menghitung IPS dan IPK."),
+                        actionLabel = t("Add semester", "Tambah semester"),
                         onAction = { nav.navigate(Routes.semester(vm.createSemester())) },
                         modifier = Modifier.readable(),
                     )
@@ -144,9 +167,9 @@ fun AcademicScreen(nav: Navigator) {
                 Card(onClick = { nav.navigate(Routes.semester(semester.id)) }, modifier = Modifier.readable()) {
                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(semester.name.ifBlank { "Untitled semester" }, style = MaterialTheme.typography.titleMedium)
+                            Text(semester.name.ifBlank { t("Untitled semester", "Semester tanpa nama") }, style = MaterialTheme.typography.titleMedium)
                             Text(
-                                if (result.gpa == null) "Not calculated yet" else "${result.totalCredits} SKS",
+                                if (result.gpa == null) t("Not calculated yet", "Belum dihitung") else "${result.totalCredits} SKS",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -185,7 +208,14 @@ fun ToolRow(emoji: String, title: String, subtitle: String, onClick: () -> Unit)
 
 @Composable
 fun SemesterScreen(id: String, onBack: () -> Unit) {
+    val t = LocalLang.current
     val vm = academicViewModel()
+    val activity = LocalContext.current as? android.app.Activity
+    // A semester that was added but never filled in is removed again when the screen is left
+    // (not on rotation), so tapping "Add" by accident leaves no empty entries behind.
+    DisposableEffect(id) {
+        onDispose { if (activity?.isChangingConfigurations != true) vm.removeIfUntouched(id) }
+    }
     val messenger = LocalMessenger.current
     val data by vm.data.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
@@ -197,13 +227,13 @@ fun SemesterScreen(id: String, onBack: () -> Unit) {
         onBack = onBack,
         actions = {
             if (semester != null) {
-                IconButton(onClick = { confirmDelete = true }) { Icon(Icons.Filled.Delete, contentDescription = "Delete semester") }
+                IconButton(onClick = { confirmDelete = true }) { Icon(Icons.Filled.Delete, contentDescription = t("Delete semester", "Hapus semester")) }
             }
         },
     ) { padding ->
         if (semester == null) {
             FormColumn(padding) {
-                EmptyState("🤔", "Semester not found", "It may have been deleted.")
+                EmptyState("🤔", t("Semester not found", "Semester tidak ditemukan"), t("It may have been deleted.", "Mungkin sudah dihapus."))
             }
             return@AppScaffold
         }
@@ -211,11 +241,11 @@ fun SemesterScreen(id: String, onBack: () -> Unit) {
         val result = GpaCalculator.semester(semester, scale)
         FormColumn(padding) {
             var name by rememberSaveable(id) { mutableStateOf(semester.name) }
-            TextInput(name, { name = it; vm.updateSemester(id) { s -> s.copy(name = it) } }, "Semester name")
+            TextInput(name, { name = it; vm.updateSemester(id) { s -> s.copy(name = it) } }, t("Semester name", "Nama semester"))
             Segmented(
                 options = listOf(false, true),
                 selected = semester.useManual,
-                label = { if (it) "Enter IPS directly" else "Per course" },
+                label = { if (it) t("Enter IPS directly", "Isi IPS langsung") else t("Per course", "Per mata kuliah") },
                 onSelect = { manual -> vm.updateSemester(id) { it.copy(useManual = manual) } },
             )
             if (semester.useManual) {
@@ -249,10 +279,10 @@ fun SemesterScreen(id: String, onBack: () -> Unit) {
                     )
                 }
             } else {
-                SectionTitle("Courses")
+                SectionTitle(t("Courses", "Mata kuliah"))
                 if (semester.courses.isEmpty()) {
                     Text(
-                        "No courses added. Add a course to calculate your IPS.",
+                        t("No courses added. Add a course to calculate your IPS.", "Belum ada mata kuliah. Tambahkan untuk menghitung IPS."),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -272,29 +302,32 @@ fun SemesterScreen(id: String, onBack: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Icon(Icons.Filled.Add, contentDescription = null)
-                    Text("Add course")
+                    Text(t("Add course", "Tambah mata kuliah"))
                 }
             }
             ResultCard {
-                Text("IPS (semester GPA)", style = MaterialTheme.typography.labelLarge)
+                Text(t("IPS (semester GPA)", "IPS (indeks prestasi semester)"), style = MaterialTheme.typography.labelLarge)
                 Text(
                     result.gpa?.let { Fmt.fixed(it, settings.gpaDecimals) } ?: "—",
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold,
                 )
-                Text("Total SKS: ${result.totalCredits}", style = MaterialTheme.typography.bodyMedium)
+                Text(t("Total SKS: ", "Total SKS: ") + result.totalCredits, style = MaterialTheme.typography.bodyMedium)
                 if (!semester.useManual) {
                     val incomplete = semester.courses.count { it.credits <= 0 || scale.pointsFor(it.grade) == null }
                     if (incomplete > 0) {
                         Text(
-                            "$incomplete course(s) without SKS or grade are not counted.",
+                            t("$incomplete course(s) without SKS or grade are not counted.", "$incomplete mata kuliah tanpa SKS atau nilai tidak dihitung."),
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
                 }
             }
             Text(
-                "IPS = Σ(grade point × SKS) ÷ Σ SKS. Grade points come from your grading scale in Settings.",
+                t(
+                    "IPS = Σ(grade point × SKS) ÷ Σ SKS. Grade points come from your grading scale in Settings.",
+                    "IPS = Σ(bobot nilai × SKS) ÷ Σ SKS. Bobot nilai diambil dari skala nilai di Pengaturan.",
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -303,15 +336,15 @@ fun SemesterScreen(id: String, onBack: () -> Unit) {
 
     if (confirmDelete && semester != null) {
         ConfirmDialog(
-            title = "Delete semester?",
-            text = "\"${semester.name}\" and its courses will be removed.",
-            confirmLabel = "Delete",
+            title = t("Delete semester?", "Hapus semester?"),
+            text = t("\"${semester.name}\" and its courses will be removed.", "\"${semester.name}\" beserta mata kuliahnya akan dihapus."),
+            confirmLabel = t("Delete", "Hapus"),
             destructive = true,
             onDismiss = { confirmDelete = false },
             onConfirm = {
                 onBack()
                 val removed = vm.deleteSemester(id)
-                if (removed != null) messenger.show("Semester deleted", "Undo") { vm.restoreSemester(removed) }
+                if (removed != null) messenger.show(t("Semester deleted", "Semester dihapus"), t("Undo", "Urungkan")) { vm.restoreSemester(removed) }
             },
         )
     }
@@ -319,6 +352,7 @@ fun SemesterScreen(id: String, onBack: () -> Unit) {
 
 @Composable
 private fun CourseRow(course: Course, letters: List<String>, onChange: (Course) -> Unit, onDelete: () -> Unit) {
+    val t = LocalLang.current
     var name by rememberSaveable { mutableStateOf(course.name) }
     var credits by rememberSaveable { mutableStateOf(if (course.credits > 0) course.credits.toString() else "") }
     Card(Modifier.fillMaxWidth()) {
@@ -330,10 +364,10 @@ private fun CourseRow(course: Course, letters: List<String>, onChange: (Course) 
                         name = it
                         onChange(course.copy(name = it))
                     },
-                    "Course name",
+                    t("Course name", "Nama mata kuliah"),
                     modifier = Modifier.weight(1f),
                 )
-                IconButton(onClick = onDelete) { Icon(Icons.Filled.Close, contentDescription = "Remove course") }
+                IconButton(onClick = onDelete) { Icon(Icons.Filled.Close, contentDescription = t("Remove course", "Hapus mata kuliah")) }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 NumberField(
@@ -347,7 +381,7 @@ private fun CourseRow(course: Course, letters: List<String>, onChange: (Course) 
                     modifier = Modifier.weight(1f),
                 )
                 DropdownField(
-                    label = "Grade",
+                    label = t("Grade", "Nilai"),
                     options = letters,
                     selected = course.grade.takeIf { it in letters },
                     optionLabel = { it },
@@ -363,6 +397,7 @@ private fun CourseRow(course: Course, letters: List<String>, onChange: (Course) 
 
 @Composable
 fun GpaGoalScreen(onBack: () -> Unit) {
+    val t = LocalLang.current
     val vm = academicViewModel()
     val data by vm.data.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
@@ -374,7 +409,7 @@ fun GpaGoalScreen(onBack: () -> Unit) {
     var remaining by rememberSaveable { mutableStateOf("") }
     var target by rememberSaveable { mutableStateOf("") }
 
-    AppScaffold(title = "GPA target planner", onBack = onBack) { padding ->
+    AppScaffold(title = t("GPA target planner", "Target IPK"), onBack = onBack) { padding ->
         FormColumn(padding) {
             if (history.gpa != null) {
                 OutlinedButton(
@@ -383,49 +418,58 @@ fun GpaGoalScreen(onBack: () -> Unit) {
                         completed = history.totalCredits.toString()
                     },
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Use my IPK (${Fmt.fixed(history.gpa!!, settings.gpaDecimals)}, ${history.totalCredits} SKS)") }
+                ) { Text(t("Use my IPK", "Pakai IPK-ku") + " (${Fmt.fixed(history.gpa!!, settings.gpaDecimals)}, ${history.totalCredits} SKS)") }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                NumberField(current, { current = it }, "Current GPA", Modifier.weight(1f))
-                NumberField(completed, { completed = it }, "Completed SKS", Modifier.weight(1f), decimal = false)
+                NumberField(current, { current = it }, t("Current GPA", "IPK saat ini"), Modifier.weight(1f))
+                NumberField(completed, { completed = it }, t("Completed SKS", "SKS ditempuh"), Modifier.weight(1f), decimal = false)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                NumberField(target, { target = it }, "Target GPA", Modifier.weight(1f))
+                NumberField(target, { target = it }, t("Target GPA", "Target IPK"), Modifier.weight(1f))
                 NumberField(
-                    remaining, { remaining = it }, "Remaining SKS", Modifier.weight(1f),
+                    remaining, { remaining = it }, t("Remaining SKS", "Sisa SKS"), Modifier.weight(1f),
                     decimal = false, imeAction = androidx.compose.ui.text.input.ImeAction.Done,
                 )
             }
             val c = parseNumber(current)
             val done = completed.toIntOrNull()
             val left = remaining.toIntOrNull()
-            val t = parseNumber(target)
-            if (c != null && done != null && left != null && t != null) {
-                when (val result = GpaPlanner.requiredGpa(c, done, left, t, scale.maxPoints)) {
+            val targetGpa = parseNumber(target)
+            if (c != null && done != null && left != null && targetGpa != null) {
+                when (val result = GpaPlanner.requiredGpa(c, done, left, targetGpa, scale.maxPoints)) {
                     is GpaTarget.Needed -> ResultCard {
-                        Text("Average needed on the remaining $left SKS", style = MaterialTheme.typography.labelLarge)
+                        Text(t("Average needed on the remaining $left SKS", "Rata-rata yang dibutuhkan di sisa $left SKS"), style = MaterialTheme.typography.labelLarge)
                         Text(Fmt.fixed(result.gpa, settings.gpaDecimals), style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
-                        Text(describePoints(result.gpa, scale), style = MaterialTheme.typography.bodyMedium)
+                        Text(describePoints(result.gpa, scale, t), style = MaterialTheme.typography.bodyMedium)
                     }
                     is GpaTarget.Impossible -> ResultCard(containerColor = MaterialTheme.colorScheme.errorContainer) {
-                        Text("Target cannot be reached", style = MaterialTheme.typography.titleMedium)
+                        Text(t("Target cannot be reached", "Target tidak bisa dicapai"), style = MaterialTheme.typography.titleMedium)
                         Text(
-                            if (result.gpa.isInfinite()) "There are no credits left to improve your GPA."
-                            else "It would need an average of ${Fmt.fixed(result.gpa, settings.gpaDecimals)} (max ${Fmt.number(scale.maxPoints)}) under the current assumptions.",
+                            if (result.gpa.isInfinite()) {
+                                t("There are no credits left to improve your GPA.", "Tidak ada sisa SKS untuk menaikkan IPK.")
+                            } else {
+                                t(
+                                    "It would need an average of ${Fmt.fixed(result.gpa, settings.gpaDecimals)} (max ${Fmt.number(scale.maxPoints)}) under the current assumptions.",
+                                    "Butuh rata-rata ${Fmt.fixed(result.gpa, settings.gpaDecimals)} (maksimal ${Fmt.number(scale.maxPoints)}) dengan asumsi saat ini.",
+                                )
+                            },
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
                     GpaTarget.AlreadySecured -> ResultCard(containerColor = MaterialTheme.colorScheme.secondaryContainer) {
-                        Text("✓ Target already secured", style = MaterialTheme.typography.titleMedium)
-                        Text("You stay at or above the target whatever grades you get.", style = MaterialTheme.typography.bodyMedium)
+                        Text(t("✓ Target already secured", "✓ Target sudah aman"), style = MaterialTheme.typography.titleMedium)
+                        Text(t("You stay at or above the target whatever grades you get.", "Berapa pun nilaimu nanti, IPK tetap di atas target."), style = MaterialTheme.typography.bodyMedium)
                     }
-                    is GpaTarget.Invalid -> InfoCard(result.reason, emoji = "⚠️")
+                    is GpaTarget.Invalid -> InfoCard(t.gpaInvalid(result.reason, scale.maxPoints), emoji = "⚠️")
                 }
             } else {
-                InfoCard("Fill in all four fields to see the average grade point you need.")
+                InfoCard(t("Fill in all four fields to see the average grade point you need.", "Isi keempat kolom untuk melihat rata-rata nilai yang dibutuhkan."))
             }
             Text(
-                "Needed = (target × total SKS − current GPA × completed SKS) ÷ remaining SKS",
+                t(
+                    "Needed = (target × total SKS − current GPA × completed SKS) ÷ remaining SKS",
+                    "Dibutuhkan = (target × total SKS − IPK saat ini × SKS ditempuh) ÷ sisa SKS",
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -433,15 +477,15 @@ fun GpaGoalScreen(onBack: () -> Unit) {
     }
 }
 
-private fun describePoints(points: Double, scale: GradeScale): String {
+private fun describePoints(points: Double, scale: GradeScale, t: Lang): String {
     val exact = scale.bands.firstOrNull { kotlin.math.abs(it.points - points) < 1e-9 }
-    if (exact != null) return "That is an average of ${exact.letter}."
+    if (exact != null) return t("That is an average of ${exact.letter}.", "Artinya rata-rata ${exact.letter}.")
     val above = scale.bands.filter { it.points > points }.minByOrNull { it.points }
     val below = scale.bands.filter { it.points < points }.maxByOrNull { it.points }
     return when {
-        above != null && below != null -> "Somewhere between ${below.letter} and ${above.letter} on average."
-        above != null -> "At least ${above.letter} on average."
-        else -> "Any grade keeps you on target."
+        above != null && below != null -> t("Somewhere between ${below.letter} and ${above.letter} on average.", "Rata-rata antara ${below.letter} dan ${above.letter}.")
+        above != null -> t("At least ${above.letter} on average.", "Rata-rata minimal ${above.letter}.")
+        else -> t("Any grade keeps you on target.", "Nilai berapa pun tetap sesuai target.")
     }
 }
 
@@ -449,6 +493,7 @@ private fun describePoints(points: Double, scale: GradeScale): String {
 
 @Composable
 fun GradeConverterScreen(nav: Navigator, onBack: () -> Unit) {
+    val t = LocalLang.current
     val vm = academicViewModel()
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scale = settings.gradeScale
@@ -456,25 +501,25 @@ fun GradeConverterScreen(nav: Navigator, onBack: () -> Unit) {
     val value = parseNumber(score)
     val band = value?.takeIf { it in 0.0..100.0 }?.let { scale.bandFor(it) }
 
-    AppScaffold(title = "Grade converter", onBack = onBack) { padding ->
+    AppScaffold(title = t("Grade converter", "Konversi nilai"), onBack = onBack) { padding ->
         FormColumn(padding) {
             NumberField(
-                score, { score = it }, "Score (0–100)", Modifier.fillMaxWidth(),
+                score, { score = it }, t("Score (0–100)", "Skor (0–100)"), Modifier.fillMaxWidth(),
                 isError = value != null && value !in 0.0..100.0,
-                supportingText = if (value != null && value !in 0.0..100.0) "Scores go from 0 to 100" else null,
+                supportingText = if (value != null && value !in 0.0..100.0) t("Scores go from 0 to 100", "Skor dari 0 sampai 100") else null,
                 imeAction = androidx.compose.ui.text.input.ImeAction.Done,
             )
             if (band != null) {
                 ResultCard {
-                    Text("Grade", style = MaterialTheme.typography.labelLarge)
+                    Text(t("Grade", "Nilai huruf"), style = MaterialTheme.typography.labelLarge)
                     Text(band.letter, style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Bold)
-                    Text("Range ${scale.rangeLabel(band)} · ${Fmt.number(band.points)} points", style = MaterialTheme.typography.bodyMedium)
+                    Text(t("Range", "Rentang") + " ${scale.rangeLabel(band)} · ${Fmt.number(band.points)} " + t("points", "poin"), style = MaterialTheme.typography.bodyMedium)
                 }
             }
-            SectionTitle("Your grading scale")
+            SectionTitle(t("Your grading scale", "Skala nilaimu"))
             ScaleTable(scale, highlight = band)
             OutlinedButton(onClick = { nav.navigate(Routes.GRADE_SCALE) }, modifier = Modifier.fillMaxWidth()) {
-                Text("Edit grading scale")
+                Text(t("Edit grading scale", "Ubah skala nilai"))
             }
         }
     }
@@ -510,6 +555,7 @@ private fun GradeScale.toRows(): List<ScaleRow> =
 
 @Composable
 fun GradeScaleScreen(onBack: () -> Unit) {
+    val t = LocalLang.current
     val vm = academicViewModel()
     val messenger = LocalMessenger.current
     val settings by vm.settings.collectAsStateWithLifecycle()
@@ -532,60 +578,65 @@ fun GradeScaleScreen(onBack: () -> Unit) {
     BackHandler(enabled = dirty) { askDiscard = true }
 
     AppScaffold(
-        title = "Grading scale",
+        title = t("Grading scale", "Skala nilai"),
         onBack = leave,
         actions = {
-            IconButton(onClick = { askReset = true }) { Icon(Icons.Filled.Refresh, contentDescription = "Reset to default") }
+            IconButton(onClick = { askReset = true }) { Icon(Icons.Filled.Refresh, contentDescription = t("Reset to default", "Kembalikan ke bawaan")) }
         },
     ) { padding ->
         FormColumn(padding) {
-            InfoCard("Scores at or above the minimum get that grade. Grade points are used for IPS/IPK. Every campus is different, so adjust freely.")
+            InfoCard(
+                t(
+                    "Scores at or above the minimum get that grade. Grade points are used for IPS/IPK. Every campus is different, so adjust freely.",
+                    "Skor di atas atau sama dengan minimum mendapat nilai itu. Bobot dipakai untuk IPS/IPK. Tiap kampus berbeda, jadi sesuaikan saja.",
+                ),
+            )
             rows.forEachIndexed { index, row ->
                 key(row.id) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         TextInput(
                             row.letter,
                             { v -> rows = rows.toMutableList().also { it[index] = row.copy(letter = v.take(4)) } },
-                            "Grade",
+                            t("Grade", "Huruf"),
                             modifier = Modifier.weight(1f),
                             capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Characters,
                         )
                         NumberField(
                             row.min, { v -> rows = rows.toMutableList().also { it[index] = row.copy(min = v) } },
-                            "Min score", Modifier.weight(1f),
+                            t("Min score", "Skor min"), Modifier.weight(1f),
                         )
                         NumberField(
                             row.points, { v -> rows = rows.toMutableList().also { it[index] = row.copy(points = v) } },
-                            "Points", Modifier.weight(1f),
+                            t("Points", "Bobot"), Modifier.weight(1f),
                         )
                         IconButton(onClick = { rows = rows.filterNot { it.id == row.id } }) {
-                            Icon(Icons.Filled.Close, contentDescription = "Remove grade")
+                            Icon(Icons.Filled.Close, contentDescription = t("Remove grade", "Hapus baris"))
                         }
                     }
                 }
             }
             OutlinedButton(onClick = { rows = rows + ScaleRow(newId(), "", "", "") }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Filled.Add, contentDescription = null)
-                Text("Add grade")
+                Text(t("Add grade", "Tambah nilai"))
             }
-            problems.forEach { InfoCard(it, emoji = "⚠️", container = MaterialTheme.colorScheme.errorContainer) }
+            problems.forEach { InfoCard(t.scaleProblem(it), emoji = "⚠️", container = MaterialTheme.colorScheme.errorContainer) }
             Button(
                 onClick = {
                     vm.updateScale(candidate)
-                    messenger.show("✓ Grading scale saved")
+                    messenger.show(t("✓ Grading scale saved", "✓ Skala nilai disimpan"))
                     onBack()
                 },
                 enabled = problems.isEmpty() && dirty,
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text("Save scale") }
+            ) { Text(t("Save scale", "Simpan skala")) }
         }
     }
 
     if (askDiscard) {
         ConfirmDialog(
-            title = "Discard changes?",
-            text = "Your edits to the grading scale have not been saved.",
-            confirmLabel = "Discard",
+            title = t("Discard changes?", "Buang perubahan?"),
+            text = t("Your edits to the grading scale have not been saved.", "Perubahan skala nilai belum disimpan."),
+            confirmLabel = t("Discard", "Buang"),
             destructive = true,
             onDismiss = { askDiscard = false },
             onConfirm = onBack,
@@ -593,9 +644,9 @@ fun GradeScaleScreen(onBack: () -> Unit) {
     }
     if (askReset) {
         ConfirmDialog(
-            title = "Reset to default?",
-            text = "A/AB/B/BC/C/D/E with 85/80/75/70/60/50/0 and 4.0 to 0.0 points.",
-            confirmLabel = "Reset",
+            title = t("Reset to default?", "Kembalikan ke bawaan?"),
+            text = t("A/AB/B/BC/C/D/E with 85/80/75/70/60/50/0 and 4.0 to 0.0 points.", "A/AB/B/BC/C/D/E dengan skor 85/80/75/70/60/50/0 dan bobot 4,0 sampai 0,0."),
+            confirmLabel = t("Reset", "Kembalikan"),
             onDismiss = { askReset = false },
             onConfirm = { rows = GradeScale.DEFAULT.toRows() },
         )

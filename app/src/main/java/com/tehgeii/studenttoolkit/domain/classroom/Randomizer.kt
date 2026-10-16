@@ -10,11 +10,11 @@ sealed interface GroupMode {
 }
 
 /** What to do when the number of people and tasks differ. Chosen by the user, never guessed. */
-enum class AssignRule(val label: String) {
-    REPEAT_TASKS("Allow repeated tasks"),
-    LEAVE_PEOPLE_UNASSIGNED("Leave some people unassigned"),
-    MULTIPLE_TASKS_PER_PERSON("Give some people more than one task"),
-    LEAVE_TASKS_UNASSIGNED("Leave some tasks unassigned"),
+enum class AssignRule {
+    REPEAT_TASKS,
+    LEAVE_PEOPLE_UNASSIGNED,
+    MULTIPLE_TASKS_PER_PERSON,
+    LEAVE_TASKS_UNASSIGNED,
 }
 
 data class Assignment(val person: String, val tasks: List<String>)

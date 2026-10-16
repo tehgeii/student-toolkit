@@ -82,7 +82,9 @@ sealed interface GpaTarget {
     data class Needed(val gpa: Double) : GpaTarget
     data object AlreadySecured : GpaTarget
     data class Impossible(val gpa: Double) : GpaTarget
-    data class Invalid(val reason: String) : GpaTarget
+    data class Invalid(val reason: Reason) : GpaTarget
+
+    enum class Reason { CURRENT_OUT_OF_RANGE, TARGET_OUT_OF_RANGE, NEGATIVE_CREDITS }
 }
 
 object GpaPlanner {
@@ -97,9 +99,9 @@ object GpaPlanner {
         targetGpa: Double,
         maxPoints: Double,
     ): GpaTarget {
-        if (currentGpa < 0 || currentGpa > maxPoints) return GpaTarget.Invalid("Current GPA must be between 0 and ${maxPoints}.")
-        if (targetGpa < 0 || targetGpa > maxPoints) return GpaTarget.Invalid("Target GPA must be between 0 and ${maxPoints}.")
-        if (completedCredits < 0 || remainingCredits < 0) return GpaTarget.Invalid("Credits cannot be negative.")
+        if (currentGpa < 0 || currentGpa > maxPoints) return GpaTarget.Invalid(GpaTarget.Reason.CURRENT_OUT_OF_RANGE)
+        if (targetGpa < 0 || targetGpa > maxPoints) return GpaTarget.Invalid(GpaTarget.Reason.TARGET_OUT_OF_RANGE)
+        if (completedCredits < 0 || remainingCredits < 0) return GpaTarget.Invalid(GpaTarget.Reason.NEGATIVE_CREDITS)
         if (remainingCredits == 0) {
             return if (currentGpa >= targetGpa - 1e-9) GpaTarget.AlreadySecured else GpaTarget.Impossible(Double.POSITIVE_INFINITY)
         }

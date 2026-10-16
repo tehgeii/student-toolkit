@@ -2,10 +2,13 @@ package com.tehgeii.studenttoolkit.ui
 
 import android.content.ActivityNotFoundException
 import android.content.ClipData
+import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.os.PersistableBundle
 import android.widget.Toast
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
@@ -13,12 +16,17 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.core.content.FileProvider
 import com.tehgeii.studenttoolkit.AppContainer
+import com.tehgeii.studenttoolkit.StudentToolkitApp
+import com.tehgeii.studenttoolkit.i18n.Lang
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 val LocalContainer = staticCompositionLocalOf<AppContainer> { error("AppContainer not provided") }
 val LocalMessenger = staticCompositionLocalOf<Messenger> { error("Messenger not provided") }
+
+/** UI language. Use as `val t = LocalLang.current` then `t("English", "Indonesia")`. */
+val LocalLang = staticCompositionLocalOf { Lang.EN }
 
 /** App-wide snackbars. Lives above the screens so an Undo survives navigating back. */
 class Messenger(private val host: SnackbarHostState, private val scope: CoroutineScope) {
@@ -52,9 +60,19 @@ object Platform {
         startSafely(context, Intent.createChooser(send, title))
     }
 
-    fun copy(context: Context, label: String, text: String) {
+    /** [sensitive] hides the text from the clipboard preview and keyboard suggestions (e.g. Wi-Fi passwords). */
+    fun copy(context: Context, label: String, text: String, sensitive: Boolean = false) {
         val clipboard = context.getSystemService(ClipboardManager::class.java) ?: return
-        clipboard.setPrimaryClip(ClipData.newPlainText(label, text))
+        val clip = ClipData.newPlainText(label, text)
+        if (sensitive) {
+            val key = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ClipDescription.EXTRA_IS_SENSITIVE
+            } else {
+                "android.content.extra.IS_SENSITIVE"
+            }
+            clip.description.extras = PersistableBundle().apply { putBoolean(key, true) }
+        }
+        clipboard.setPrimaryClip(clip)
     }
 
     fun openUrl(context: Context, url: String) {
@@ -66,7 +84,8 @@ object Platform {
             if (context !is android.app.Activity) intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(intent)
         } catch (e: ActivityNotFoundException) {
-            Toast.makeText(context, "No app can handle this action.", Toast.LENGTH_SHORT).show()
+            val t = StudentToolkitApp.container(context).lang()
+            Toast.makeText(context, t("No app can handle this action.", "Tidak ada aplikasi yang bisa membuka ini."), Toast.LENGTH_SHORT).show()
         }
     }
 }

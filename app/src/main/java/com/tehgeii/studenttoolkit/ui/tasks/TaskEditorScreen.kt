@@ -5,10 +5,12 @@ package com.tehgeii.studenttoolkit.ui.tasks
 import android.text.format.DateFormat
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -34,6 +36,7 @@ import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -48,7 +51,11 @@ import com.tehgeii.studenttoolkit.domain.tasks.Priority
 import com.tehgeii.studenttoolkit.domain.tasks.ReminderPresets
 import com.tehgeii.studenttoolkit.domain.tasks.Subtask
 import com.tehgeii.studenttoolkit.domain.tasks.Task
+import com.tehgeii.studenttoolkit.i18n.dateTime
+import com.tehgeii.studenttoolkit.i18n.durationWords
+import com.tehgeii.studenttoolkit.i18n.priority
 import com.tehgeii.studenttoolkit.ui.LocalContainer
+import com.tehgeii.studenttoolkit.ui.LocalLang
 import com.tehgeii.studenttoolkit.ui.LocalMessenger
 import com.tehgeii.studenttoolkit.ui.Navigator
 import com.tehgeii.studenttoolkit.ui.components.AppScaffold
@@ -96,11 +103,15 @@ private fun Task.toForm() = TaskForm(
     reminders = reminders,
 )
 
+/** Each reminder is one system alarm; a handful per task is plenty. */
+private const val MAX_REMINDERS = 8
+
 private fun atEndOfDay(date: LocalDate, zone: ZoneId): Long =
     date.atTime(23, 59).atZone(zone).toInstant().toEpochMilli()
 
 @Composable
 fun TaskEditorScreen(idParam: String, nav: Navigator, onBack: () -> Unit) {
+    val t = LocalLang.current
     val vm = tasksViewModel()
     val container = LocalContainer.current
     val messenger = LocalMessenger.current
@@ -110,8 +121,8 @@ fun TaskEditorScreen(idParam: String, nav: Navigator, onBack: () -> Unit) {
     val existing = if (isNew) null else vm.get(idParam)
 
     if (!isNew && existing == null) {
-        AppScaffold(title = "Task", onBack = onBack) { padding ->
-            FormColumn(padding) { EmptyState("🤔", "Task not found", "It may have been deleted.") }
+        AppScaffold(title = t("Task", "Tugas"), onBack = onBack) { padding ->
+            FormColumn(padding) { EmptyState("🤔", t("Task not found", "Tugas tidak ditemukan"), t("It may have been deleted.", "Mungkin sudah dihapus.")) }
         }
         return
     }
@@ -125,6 +136,7 @@ fun TaskEditorScreen(idParam: String, nav: Navigator, onBack: () -> Unit) {
     var showTime by rememberSaveable { mutableStateOf(false) }
     var pickedDay by rememberSaveable { mutableStateOf<Long?>(null) }
     var newSubtask by rememberSaveable { mutableStateOf("") }
+    var customReminder by rememberSaveable { mutableStateOf(false) }
 
     val dirty = form != original
     val leave: () -> Unit = {
@@ -166,18 +178,18 @@ fun TaskEditorScreen(idParam: String, nav: Navigator, onBack: () -> Unit) {
             reminders = if (form.deadline != null) form.reminders.distinct().sorted() else emptyList(),
         )
         vm.save(task)
-        messenger.show(if (existing == null) "✓ Task added" else "✓ Task saved")
+        messenger.show(if (existing == null) t("✓ Task added", "✓ Tugas ditambahkan") else t("✓ Task saved", "✓ Tugas disimpan"))
         onBack()
     }
 
     AppScaffold(
-        title = if (isNew) "New task" else "Edit task",
+        title = if (isNew) t("New task", "Tugas baru") else t("Edit task", "Ubah tugas"),
         onBack = leave,
         actions = {
             if (existing != null) {
-                IconButton(onClick = { askDelete = true }) { Icon(Icons.Filled.Delete, contentDescription = "Delete task") }
+                IconButton(onClick = { askDelete = true }) { Icon(Icons.Filled.Delete, contentDescription = t("Delete task", "Hapus tugas")) }
             }
-            TextButton(onClick = ::save) { Text("Save") }
+            TextButton(onClick = ::save) { Text(t("Save", "Simpan")) }
         },
     ) { padding ->
         FormColumn(padding) {
@@ -187,63 +199,70 @@ fun TaskEditorScreen(idParam: String, nav: Navigator, onBack: () -> Unit) {
                     form = form.copy(title = it)
                     titleError = false
                 },
-                "Title",
+                t("Title", "Judul"),
                 isError = titleError,
-                supportingText = if (titleError) "Give the task a title" else null,
+                supportingText = if (titleError) t("Give the task a title", "Isi judul tugasnya") else null,
             )
-            TextInput(form.course, { form = form.copy(course = it) }, "Course (optional)")
+            TextInput(form.course, { form = form.copy(course = it) }, t("Course (optional)", "Mata kuliah (opsional)"))
 
             SectionTitle("Deadline")
             val deadline = form.deadline
             if (deadline == null) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     val today = LocalDate.now(zone)
-                    AssistChip(onClick = { setDeadline(atEndOfDay(today, zone)) }, label = { Text("Today 23:59") })
-                    AssistChip(onClick = { setDeadline(atEndOfDay(today.plusDays(1), zone)) }, label = { Text("Tomorrow") })
-                    AssistChip(onClick = { setDeadline(atEndOfDay(today.plusWeeks(1), zone)) }, label = { Text("In a week") })
-                    AssistChip(onClick = { showDate = true }, label = { Text("Pick date…") })
+                    AssistChip(onClick = { setDeadline(atEndOfDay(today, zone)) }, label = { Text(t("Today 23:59", "Hari ini 23:59")) })
+                    AssistChip(onClick = { setDeadline(atEndOfDay(today.plusDays(1), zone)) }, label = { Text(t("Tomorrow", "Besok")) })
+                    AssistChip(onClick = { setDeadline(atEndOfDay(today.plusWeeks(1), zone)) }, label = { Text(t("In a week", "Seminggu lagi")) })
+                    AssistChip(onClick = { showDate = true }, label = { Text(t("Pick date…", "Pilih tanggal…")) })
                 }
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     OutlinedButton(onClick = { showDate = true }, modifier = Modifier.weight(1f)) {
-                        Text("📅 ${Fmt.dateTime(deadline, zone)}")
+                        Text("📅 ${t.dateTime(deadline, zone)}")
                     }
-                    IconButton(onClick = { setDeadline(null) }) { Icon(Icons.Filled.Close, contentDescription = "Remove deadline") }
+                    IconButton(onClick = { setDeadline(null) }) { Icon(Icons.Filled.Close, contentDescription = t("Remove deadline", "Hapus deadline")) }
                 }
-                SectionTitle("Remind me before")
+                SectionTitle(t("Remind me before", "Ingatkan sebelum"))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ReminderPresets.options.forEach { minutes ->
+                    // Presets plus any custom reminders this task already has.
+                    (ReminderPresets.options + form.reminders).distinct().sorted().forEach { minutes ->
                         val selected = minutes in form.reminders
                         FilterChip(
                             selected = selected,
                             onClick = {
                                 form = form.copy(reminders = if (selected) form.reminders - minutes else form.reminders + minutes)
                             },
-                            label = { Text(ReminderPresets.label(minutes)) },
+                            label = { Text(t.durationWords(minutes)) },
                         )
                     }
+                    AssistChip(
+                        onClick = { customReminder = true },
+                        enabled = form.reminders.size < MAX_REMINDERS,
+                        label = { Text(t("Custom…", "Atur sendiri…")) },
+                        leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                    )
                 }
                 if (form.reminders.isNotEmpty()) {
-                    NotificationPermissionCard("Allow them to get deadline reminders.")
+                    NotificationPermissionCard(t("Allow them to get deadline reminders.", "Izinkan agar pengingat deadline bisa muncul."))
                 }
             }
 
-            SectionTitle("Priority")
-            Segmented(Priority.entries.toList(), form.priority, { it.label }, { form = form.copy(priority = it) })
+            SectionTitle(t("Priority", "Prioritas"))
+            Segmented(Priority.entries.toList(), form.priority, { t.priority(it) }, { form = form.copy(priority = it) })
 
-            SectionTitle("Estimated time")
+            SectionTitle(t("Estimated time", "Perkiraan waktu"))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                NumberField(form.hours, { form = form.copy(hours = it.take(3)) }, "Hours", Modifier.weight(1f), decimal = false)
+                NumberField(form.hours, { form = form.copy(hours = it.take(3)) }, t("Hours", "Jam"), Modifier.weight(1f), decimal = false)
                 NumberField(
                     form.minutes,
                     { form = form.copy(minutes = (it.toIntOrNull()?.coerceAtMost(59)?.toString() ?: "")) },
-                    "Minutes",
+                    t("Minutes", "Menit"),
                     Modifier.weight(1f),
                     decimal = false,
                 )
             }
 
-            SectionTitle("Steps")
+            SectionTitle(t("Steps", "Langkah"))
             form.subtasks.forEach { sub ->
                 key(sub.id) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -254,11 +273,11 @@ fun TaskEditorScreen(idParam: String, nav: Navigator, onBack: () -> Unit) {
                         TextInput(
                             sub.title,
                             { text -> form = form.copy(subtasks = form.subtasks.map { if (it.id == sub.id) it.copy(title = text) else it }) },
-                            "Step",
+                            t("Step", "Langkah"),
                             modifier = Modifier.weight(1f),
                         )
                         IconButton(onClick = { form = form.copy(subtasks = form.subtasks.filterNot { it.id == sub.id }) }) {
-                            Icon(Icons.Filled.Close, contentDescription = "Remove step")
+                            Icon(Icons.Filled.Close, contentDescription = t("Remove step", "Hapus langkah"))
                         }
                     }
                 }
@@ -267,7 +286,7 @@ fun TaskEditorScreen(idParam: String, nav: Navigator, onBack: () -> Unit) {
                 TextInput(
                     newSubtask,
                     { newSubtask = it },
-                    "Add a step",
+                    t("Add a step", "Tambah langkah"),
                     modifier = Modifier.weight(1f),
                     imeAction = ImeAction.Done,
                 )
@@ -278,19 +297,19 @@ fun TaskEditorScreen(idParam: String, nav: Navigator, onBack: () -> Unit) {
                             newSubtask = ""
                         }
                     },
-                ) { Icon(Icons.Filled.Add, contentDescription = "Add step") }
+                ) { Icon(Icons.Filled.Add, contentDescription = t("Add step", "Tambah langkah")) }
             }
 
-            TextInput(form.notes, { form = form.copy(notes = it) }, "Notes", singleLine = false, minLines = 3)
+            TextInput(form.notes, { form = form.copy(notes = it) }, t("Notes", "Catatan"), singleLine = false, minLines = 3)
 
             if (existing != null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Completed", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                    Text(t("Completed", "Selesai"), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                     Switch(checked = form.completed, onCheckedChange = { form = form.copy(completed = it) })
                 }
             }
 
-            Button(onClick = ::save, modifier = Modifier.fillMaxWidth()) { Text(if (isNew) "Add task" else "Save changes") }
+            Button(onClick = ::save, modifier = Modifier.fillMaxWidth()) { Text(if (isNew) t("Add task", "Tambah tugas") else t("Save changes", "Simpan perubahan")) }
         }
     }
 
@@ -311,9 +330,9 @@ fun TaskEditorScreen(idParam: String, nav: Navigator, onBack: () -> Unit) {
                         if (pickedDay != null) showTime = true
                     },
                     enabled = dateState.selectedDateMillis != null,
-                ) { Text("Next") }
+                ) { Text(t("Next", "Lanjut")) }
             },
-            dismissButton = { TextButton(onClick = { showDate = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { showDate = false }) { Text(t("Cancel", "Batal")) } },
         ) {
             DatePicker(state = dateState)
         }
@@ -328,7 +347,7 @@ fun TaskEditorScreen(idParam: String, nav: Navigator, onBack: () -> Unit) {
         )
         AlertDialog(
             onDismissRequest = { showTime = false },
-            title = { Text("Deadline time") },
+            title = { Text(t("Deadline time", "Jam deadline")) },
             text = { TimePicker(state = timeState) },
             confirmButton = {
                 TextButton(onClick = {
@@ -338,17 +357,70 @@ fun TaskEditorScreen(idParam: String, nav: Navigator, onBack: () -> Unit) {
                         setDeadline(date.atTime(timeState.hour, timeState.minute).atZone(zone).toInstant().toEpochMilli())
                     }
                     showTime = false
-                }) { Text("Set") }
+                }) { Text(t("Set", "Atur")) }
             },
-            dismissButton = { TextButton(onClick = { showTime = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { showTime = false }) { Text(t("Cancel", "Batal")) } },
+        )
+    }
+
+    if (customReminder) {
+        var amount by rememberSaveable { mutableStateOf("") }
+        var unit by rememberSaveable { mutableIntStateOf(1) }
+        val factor = when (unit) {
+            0 -> 1
+            1 -> 60
+            else -> 24 * 60
+        }
+        val minutes = amount.toIntOrNull()?.let { it * factor }
+        val valid = minutes != null && minutes in 1..ReminderPresets.MAX_MINUTES
+        AlertDialog(
+            onDismissRequest = { customReminder = false },
+            title = { Text(t("Custom reminder", "Pengingat custom")) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    NumberField(
+                        amount,
+                        { amount = it.take(4) },
+                        t("How long before the deadline", "Berapa lama sebelum deadline"),
+                        Modifier.fillMaxWidth(),
+                        decimal = false,
+                        imeAction = ImeAction.Done,
+                    )
+                    Segmented(
+                        listOf(0, 1, 2),
+                        unit,
+                        {
+                            when (it) {
+                                0 -> t("Minutes", "Menit")
+                                1 -> t("Hours", "Jam")
+                                else -> t("Days", "Hari")
+                            }
+                        },
+                        { unit = it },
+                    )
+                    if (minutes != null && valid) {
+                        Text(t("Remind me ", "Ingatkan ") + t.durationWords(minutes) + t(" before the deadline.", " sebelum deadline."))
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (minutes != null && valid) form = form.copy(reminders = (form.reminders + minutes).distinct())
+                        customReminder = false
+                    },
+                    enabled = valid,
+                ) { Text(t("Add", "Tambah")) }
+            },
+            dismissButton = { TextButton(onClick = { customReminder = false }) { Text(t("Cancel", "Batal")) } },
         )
     }
 
     if (askDiscard) {
         ConfirmDialog(
-            title = "Discard changes?",
-            text = "Your changes to this task have not been saved.",
-            confirmLabel = "Discard",
+            title = t("Discard changes?", "Buang perubahan?"),
+            text = t("Your changes to this task have not been saved.", "Perubahan tugas ini belum disimpan."),
+            confirmLabel = t("Discard", "Buang"),
             destructive = true,
             onDismiss = { askDiscard = false },
             onConfirm = onBack,
@@ -357,15 +429,15 @@ fun TaskEditorScreen(idParam: String, nav: Navigator, onBack: () -> Unit) {
 
     if (askDelete && existing != null) {
         ConfirmDialog(
-            title = "Delete task?",
-            text = "\"${existing.title}\" will be deleted.",
-            confirmLabel = "Delete",
+            title = t("Delete task?", "Hapus tugas?"),
+            text = t("\"${existing.title}\" will be deleted.", "\"${existing.title}\" akan dihapus."),
+            confirmLabel = t("Delete", "Hapus"),
             destructive = true,
             onDismiss = { askDelete = false },
             onConfirm = {
                 onBack()
                 val removed = vm.delete(existing.id)
-                if (removed != null) messenger.show("Task deleted", "Undo") { vm.restore(removed) }
+                if (removed != null) messenger.show(t("Task deleted", "Tugas dihapus"), t("Undo", "Urungkan")) { vm.restore(removed) }
             },
         )
     }

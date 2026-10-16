@@ -14,21 +14,23 @@ import android.os.Build
 import android.util.Log
 import com.tehgeii.studenttoolkit.MainActivity
 import com.tehgeii.studenttoolkit.R
+import com.tehgeii.studenttoolkit.i18n.Lang
 
 /** Notification channels: Deadlines and Focus (Pomodoro + timer). Users can tune each in system settings. */
 object Notifier {
     const val CHANNEL_DEADLINES = "deadlines"
     const val CHANNEL_FOCUS = "focus"
 
-    fun createChannels(context: Context) {
+    /** Safe to call again: Android only updates the names and keeps the user's channel settings. */
+    fun createChannels(context: Context, t: Lang) {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
         manager.createNotificationChannels(
             listOf(
-                NotificationChannel(CHANNEL_DEADLINES, "Deadline reminders", NotificationManager.IMPORTANCE_HIGH).apply {
-                    description = "Reminders before your task deadlines"
+                NotificationChannel(CHANNEL_DEADLINES, t("Deadline reminders", "Pengingat deadline"), NotificationManager.IMPORTANCE_HIGH).apply {
+                    description = t("Reminders before your task deadlines", "Pengingat sebelum deadline tugas")
                 },
-                NotificationChannel(CHANNEL_FOCUS, "Pomodoro & timer", NotificationManager.IMPORTANCE_HIGH).apply {
-                    description = "Alerts when a focus session, break or timer ends"
+                NotificationChannel(CHANNEL_FOCUS, t("Pomodoro & timer", "Pomodoro & timer"), NotificationManager.IMPORTANCE_HIGH).apply {
+                    description = t("Alerts when a focus session, break or timer ends", "Pemberitahuan saat sesi fokus, istirahat, atau timer selesai")
                 },
             ),
         )

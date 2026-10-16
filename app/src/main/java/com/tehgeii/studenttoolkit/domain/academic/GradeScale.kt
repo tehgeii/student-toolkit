@@ -2,6 +2,11 @@ package com.tehgeii.studenttoolkit.domain.academic
 
 import com.tehgeii.studenttoolkit.core.Fmt
 
+/** A reason a grading scale cannot be used. [detail] carries e.g. the duplicated letters. */
+data class ScaleProblem(val kind: Kind, val detail: String = "") {
+    enum class Kind { EMPTY, BLANK_LETTER, DUPLICATE_LETTERS, MIN_OUT_OF_RANGE, NEGATIVE_POINTS, DUPLICATE_MIN, LOWEST_NOT_ZERO }
+}
+
 /** One row of a grading scale: a score of at least [minScore] earns [letter] worth [points]. */
 data class GradeBand(val letter: String, val minScore: Double, val points: Double)
 
@@ -40,16 +45,17 @@ class GradeScale(bands: List<GradeBand>) {
         bands.filter { it.points >= points - 1e-9 }.minByOrNull { it.points }
 
     /** Returns a list of problems; an empty list means the scale is usable. */
-    fun validate(): List<String> {
-        val problems = mutableListOf<String>()
-        if (bands.isEmpty()) problems += "Add at least one grade."
-        if (bands.any { it.letter.isBlank() }) problems += "Every grade needs a letter."
+    fun validate(): List<ScaleProblem> {
+        val problems = mutableListOf<ScaleProblem>()
+        fun add(kind: ScaleProblem.Kind, detail: String = "") { problems += ScaleProblem(kind, detail) }
+        if (bands.isEmpty()) add(ScaleProblem.Kind.EMPTY)
+        if (bands.any { it.letter.isBlank() }) add(ScaleProblem.Kind.BLANK_LETTER)
         val duplicates = bands.groupBy { it.letter.trim().uppercase() }.filter { it.value.size > 1 }.keys
-        if (duplicates.isNotEmpty()) problems += "Duplicate letters: ${duplicates.joinToString()}."
-        if (bands.any { it.minScore < 0 || it.minScore > 100 }) problems += "Minimum scores must be between 0 and 100."
-        if (bands.any { it.points < 0 }) problems += "Grade points cannot be negative."
-        if (bands.map { it.minScore }.distinct().size != bands.size) problems += "Two grades share the same minimum score."
-        if (bands.isNotEmpty() && bands.last().minScore > 0) problems += "The lowest grade should start at 0 so every score gets a grade."
+        if (duplicates.isNotEmpty()) add(ScaleProblem.Kind.DUPLICATE_LETTERS, duplicates.joinToString())
+        if (bands.any { it.minScore < 0 || it.minScore > 100 }) add(ScaleProblem.Kind.MIN_OUT_OF_RANGE)
+        if (bands.any { it.points < 0 }) add(ScaleProblem.Kind.NEGATIVE_POINTS)
+        if (bands.map { it.minScore }.distinct().size != bands.size) add(ScaleProblem.Kind.DUPLICATE_MIN)
+        if (bands.isNotEmpty() && bands.last().minScore > 0) add(ScaleProblem.Kind.LOWEST_NOT_ZERO)
         return problems
     }
 

@@ -31,6 +31,12 @@ import com.tehgeii.studenttoolkit.domain.tools.PercentMode
 import com.tehgeii.studenttoolkit.domain.tools.Percentage
 import com.tehgeii.studenttoolkit.domain.tools.UnitCategory
 import com.tehgeii.studenttoolkit.domain.tools.UnitConverter
+import com.tehgeii.studenttoolkit.i18n.Lang
+import com.tehgeii.studenttoolkit.i18n.percentFields
+import com.tehgeii.studenttoolkit.i18n.percentMode
+import com.tehgeii.studenttoolkit.i18n.unitCategory
+import com.tehgeii.studenttoolkit.i18n.unitName
+import com.tehgeii.studenttoolkit.ui.LocalLang
 import com.tehgeii.studenttoolkit.ui.LocalMessenger
 import com.tehgeii.studenttoolkit.ui.Platform
 import com.tehgeii.studenttoolkit.ui.components.AppScaffold
@@ -58,6 +64,7 @@ private fun smart(value: Double): String {
 
 @Composable
 fun UnitConverterScreen(onBack: () -> Unit) {
+    val t = LocalLang.current
     val context = LocalContext.current
     val messenger = LocalMessenger.current
     var category by rememberSaveable { mutableStateOf(UnitCategory.LENGTH) }
@@ -66,31 +73,31 @@ fun UnitConverterScreen(onBack: () -> Unit) {
     val from = category.units[fromIndex.coerceIn(0, category.units.lastIndex)]
     val value = parseNumber(input)
 
-    AppScaffold(title = "Unit converter", onBack = onBack) { padding ->
+    AppScaffold(title = t("Unit converter", "Konversi satuan"), onBack = onBack) { padding ->
         FormColumn(padding) {
             ChoiceChips(
                 UnitCategory.entries.toList(),
                 category,
-                { it.label },
+                { t.unitCategory(it) },
                 {
                     category = it
                     fromIndex = it.units.indexOfFirst { u -> u.factor == 1.0 }.coerceAtLeast(0)
                 },
             )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                NumberField(input, { input = it }, "Value", Modifier.weight(1f), imeAction = ImeAction.Done)
+                NumberField(input, { input = it }, t("Value", "Nilai"), Modifier.weight(1f), imeAction = ImeAction.Done)
                 DropdownField(
-                    "From",
+                    t("From", "Dari"),
                     category.units,
                     from,
-                    { "${it.symbol} — ${it.name}" },
+                    { "${it.symbol} — ${t.unitName(it)}" },
                     { fromIndex = category.units.indexOf(it) },
                     Modifier.weight(1f),
                 )
             }
             when {
-                value == null -> InfoCard("Enter a number to convert.")
-                !UnitConverter.isValid(value, category, from) -> InfoCard("That is below absolute zero.", emoji = "⚠️")
+                value == null -> InfoCard(t("Enter a number to convert.", "Masukkan angka untuk dikonversi."))
+                !UnitConverter.isValid(value, category, from) -> InfoCard(t("That is below absolute zero.", "Itu di bawah nol mutlak."), emoji = "⚠️")
                 else -> Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(vertical = 4.dp)) {
                         category.units.filter { it != from }.forEachIndexed { index, unit ->
@@ -100,15 +107,15 @@ fun UnitConverterScreen(onBack: () -> Unit) {
                                 Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        Platform.copy(context, unit.name, converted)
-                                        messenger.show("✓ Copied $converted ${unit.symbol}")
+                                        Platform.copy(context, t.unitName(unit), converted)
+                                        messenger.show(t("✓ Copied ", "✓ Disalin ") + "$converted ${unit.symbol}")
                                     }
                                     .padding(horizontal = 16.dp, vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Column(Modifier.weight(1f)) {
                                     Text(unit.symbol, style = MaterialTheme.typography.titleSmall)
-                                    Text(unit.name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(t.unitName(unit), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Text(converted, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
                             }
@@ -117,10 +124,15 @@ fun UnitConverterScreen(onBack: () -> Unit) {
                 }
             }
             if (category == UnitCategory.STORAGE) {
-                InfoCard("SI units use 1000 (1 GB = 1000 MB). IEC units use 1024 (1 GiB = 1024 MiB). Operating systems often show GiB while labelling it GB.")
+                InfoCard(
+                    t(
+                        "SI units use 1000 (1 GB = 1000 MB). IEC units use 1024 (1 GiB = 1024 MiB). Operating systems often show GiB while labelling it GB.",
+                        "Satuan SI memakai 1000 (1 GB = 1000 MB). Satuan IEC memakai 1024 (1 GiB = 1024 MiB). Sistem operasi sering menampilkan GiB tapi menamainya GB.",
+                    ),
+                )
             }
             Text(
-                "Tap a result to copy it.",
+                t("Tap a result to copy it.", "Ketuk hasil untuk menyalinnya."),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -132,53 +144,55 @@ fun UnitConverterScreen(onBack: () -> Unit) {
 
 @Composable
 fun PercentageScreen(onBack: () -> Unit) {
+    val t = LocalLang.current
     var mode by rememberSaveable { mutableStateOf(PercentMode.PERCENT_OF) }
     var first by rememberSaveable { mutableStateOf("") }
     var second by rememberSaveable { mutableStateOf("") }
     val a = parseNumber(first)
     val b = parseNumber(second)
 
-    AppScaffold(title = "Percentage", onBack = onBack) { padding ->
+    AppScaffold(title = t("Percentage", "Persentase"), onBack = onBack) { padding ->
         FormColumn(padding) {
-            ChoiceChips(PercentMode.entries.toList(), mode, { it.label }, { mode = it })
+            ChoiceChips(PercentMode.entries.toList(), mode, { t.percentMode(it) }, { mode = it })
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                NumberField(first, { first = it }, mode.firstLabel, Modifier.weight(1f))
-                NumberField(second, { second = it }, mode.secondLabel, Modifier.weight(1f), imeAction = ImeAction.Done)
+                val (firstLabel, secondLabel) = t.percentFields(mode)
+                NumberField(first, { first = it }, firstLabel, Modifier.weight(1f))
+                NumberField(second, { second = it }, secondLabel, Modifier.weight(1f), imeAction = ImeAction.Done)
             }
             if (a == null || b == null) {
-                InfoCard("Fill in both values.")
+                InfoCard(t("Fill in both values.", "Isi kedua nilai."))
             } else {
-                PercentResult(mode, a, b)
+                PercentResult(mode, a, b, t)
             }
         }
     }
 }
 
 @Composable
-private fun PercentResult(mode: PercentMode, a: Double, b: Double) {
+private fun PercentResult(mode: PercentMode, a: Double, b: Double, t: Lang) {
     val n = { v: Double -> Fmt.number(v, 4) }
     when (mode) {
-        PercentMode.PERCENT_OF -> ResultLines(n(Percentage.percentOf(a, b)), "${n(a)}% of ${n(b)} = ${n(b)} × ${n(a)} ÷ 100")
+        PercentMode.PERCENT_OF -> ResultLines(n(Percentage.percentOf(a, b)), t("${n(a)}% of ${n(b)}", "${n(a)}% dari ${n(b)}") + " = ${n(b)} × ${n(a)} ÷ 100")
         PercentMode.WHAT_PERCENT -> {
             val r = Percentage.whatPercent(a, b)
-            if (r == null) InfoCard("The whole (Y) cannot be 0.", emoji = "⚠️")
-            else ResultLines("${n(r)}%", "${n(a)} is ${n(r)}% of ${n(b)} = ${n(a)} ÷ ${n(b)} × 100")
+            if (r == null) InfoCard(t("The whole (Y) cannot be 0.", "Total (Y) tidak boleh 0."), emoji = "⚠️")
+            else ResultLines("${n(r)}%", t("${n(a)} is ${n(r)}% of ${n(b)}", "${n(a)} adalah ${n(r)}% dari ${n(b)}") + " = ${n(a)} ÷ ${n(b)} × 100")
         }
         PercentMode.CHANGE -> {
             val r = Percentage.change(a, b)
             if (r == null) {
-                InfoCard("A change from 0 has no percentage.", emoji = "⚠️")
+                InfoCard(t("A change from 0 has no percentage.", "Perubahan dari 0 tidak punya persentase."), emoji = "⚠️")
             } else {
-                val word = if (r > 0) "increase" else if (r < 0) "decrease" else "no change"
+                val word = if (r > 0) t("increase", "naik") else if (r < 0) t("decrease", "turun") else t("no change", "tetap")
                 ResultLines(
                     (if (r > 0) "+" else "") + "${n(r)}%",
-                    "${n(a)} → ${n(b)}: $word of ${n(abs(b - a))} (${n(abs(r))}%)",
+                    "${n(a)} → ${n(b)}: $word " + t("by", "sebesar") + " ${n(abs(b - a))} (${n(abs(r))}%)",
                 )
             }
         }
         PercentMode.DISCOUNT -> {
             val (final, saved) = Percentage.discount(a, b)
-            ResultLines(n(final), "You pay ${n(final)} and save ${n(saved)} (${n(b)}% of ${n(a)})")
+            ResultLines(n(final), t("You pay ${n(final)} and save ${n(saved)} (${n(b)}% of ${n(a)})", "Bayar ${n(final)}, hemat ${n(saved)} (${n(b)}% dari ${n(a)})"))
         }
         PercentMode.INCREASE -> ResultLines(n(Percentage.increase(a, b)), "${n(a)} + ${n(b)}% = ${n(a)} × (1 + ${n(b)} ÷ 100)")
         PercentMode.DECREASE -> ResultLines(n(Percentage.decrease(a, b)), "${n(a)} − ${n(b)}% = ${n(a)} × (1 − ${n(b)} ÷ 100)")
@@ -187,8 +201,9 @@ private fun PercentResult(mode: PercentMode, a: Double, b: Double) {
 
 @Composable
 private fun ResultLines(value: String, explanation: String) {
+    val t = LocalLang.current
     ResultCard {
-        Text("Result", style = MaterialTheme.typography.labelLarge)
+        Text(t("Result", "Hasil"), style = MaterialTheme.typography.labelLarge)
         Text(value, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
         Text(explanation, style = MaterialTheme.typography.bodyMedium)
     }

@@ -3,9 +3,8 @@ package com.tehgeii.studenttoolkit.domain.tools
 /** A unit defined by its factor to the category's base unit (value × factor = base value). */
 data class UnitDef(val symbol: String, val name: String, val factor: Double)
 
-enum class UnitCategory(val label: String, val units: List<UnitDef>) {
+enum class UnitCategory(val units: List<UnitDef>) {
     LENGTH(
-        "Length",
         listOf(
             UnitDef("mm", "Millimeter", 0.001),
             UnitDef("cm", "Centimeter", 0.01),
@@ -19,7 +18,6 @@ enum class UnitCategory(val label: String, val units: List<UnitDef>) {
         ),
     ),
     WEIGHT(
-        "Weight",
         listOf(
             UnitDef("mg", "Milligram", 1e-6),
             UnitDef("g", "Gram", 0.001),
@@ -31,7 +29,6 @@ enum class UnitCategory(val label: String, val units: List<UnitDef>) {
         ),
     ),
     TEMPERATURE(
-        "Temperature",
         listOf(
             UnitDef("°C", "Celsius", 1.0),
             UnitDef("°F", "Fahrenheit", 1.0),
@@ -39,7 +36,6 @@ enum class UnitCategory(val label: String, val units: List<UnitDef>) {
         ),
     ),
     TIME(
-        "Time",
         listOf(
             UnitDef("ms", "Millisecond", 0.001),
             UnitDef("s", "Second", 1.0),
@@ -51,7 +47,6 @@ enum class UnitCategory(val label: String, val units: List<UnitDef>) {
         ),
     ),
     STORAGE(
-        "Storage",
         listOf(
             UnitDef("bit", "Bit", 0.125),
             UnitDef("B", "Byte", 1.0),
@@ -66,7 +61,6 @@ enum class UnitCategory(val label: String, val units: List<UnitDef>) {
         ),
     ),
     DATA_RATE(
-        "Data rate",
         listOf(
             UnitDef("bps", "Bit per second", 1.0),
             UnitDef("kbps", "Kilobit per second", 1e3),
@@ -79,7 +73,6 @@ enum class UnitCategory(val label: String, val units: List<UnitDef>) {
         ),
     ),
     SPEED(
-        "Speed",
         listOf(
             UnitDef("m/s", "Meter per second", 1.0),
             UnitDef("km/h", "Kilometer per hour", 1.0 / 3.6),
@@ -89,7 +82,6 @@ enum class UnitCategory(val label: String, val units: List<UnitDef>) {
         ),
     ),
     AREA(
-        "Area",
         listOf(
             UnitDef("mm²", "Square millimeter", 1e-6),
             UnitDef("cm²", "Square centimeter", 1e-4),
@@ -102,7 +94,6 @@ enum class UnitCategory(val label: String, val units: List<UnitDef>) {
         ),
     ),
     VOLUME(
-        "Volume",
         listOf(
             UnitDef("mL", "Milliliter", 0.001),
             UnitDef("cm³", "Cubic centimeter", 0.001),

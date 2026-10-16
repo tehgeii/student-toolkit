@@ -48,7 +48,16 @@ import com.tehgeii.studenttoolkit.domain.tasks.Task
 import com.tehgeii.studenttoolkit.domain.tasks.TaskOrganizer
 import com.tehgeii.studenttoolkit.domain.tasks.TaskSection
 import com.tehgeii.studenttoolkit.domain.tasks.TaskSort
+import com.tehgeii.studenttoolkit.i18n.Lang
+import com.tehgeii.studenttoolkit.i18n.dateTime
+import com.tehgeii.studenttoolkit.i18n.dueText
+import com.tehgeii.studenttoolkit.i18n.durationShort
+import com.tehgeii.studenttoolkit.i18n.priority
+import com.tehgeii.studenttoolkit.i18n.status
+import com.tehgeii.studenttoolkit.i18n.taskSection
+import com.tehgeii.studenttoolkit.i18n.taskSort
 import com.tehgeii.studenttoolkit.ui.LocalContainer
+import com.tehgeii.studenttoolkit.ui.LocalLang
 import com.tehgeii.studenttoolkit.ui.LocalMessenger
 import com.tehgeii.studenttoolkit.ui.Navigator
 import com.tehgeii.studenttoolkit.ui.Routes
@@ -97,6 +106,7 @@ fun priorityColor(priority: Priority): Color = when (priority) {
 
 @Composable
 fun TasksScreen(nav: Navigator) {
+    val t = LocalLang.current
     val vm = tasksViewModel()
     val messenger = LocalMessenger.current
     val tasks by vm.tasks.collectAsStateWithLifecycle()
@@ -108,18 +118,18 @@ fun TasksScreen(nav: Navigator) {
 
     val onToggle: (Task, Boolean) -> Unit = { task, done ->
         vm.setCompleted(task.id, done)
-        if (done) messenger.show("✓ Task completed", "Undo") { vm.setCompleted(task.id, false) }
+        if (done) messenger.show(t("✓ Task completed", "✓ Tugas selesai"), t("Undo", "Urungkan")) { vm.setCompleted(task.id, false) }
     }
 
     AppScaffold(
-        title = "Tasks",
+        title = t("Tasks", "Tugas"),
         actions = {
             Box {
-                IconButton(onClick = { sortMenu = true }) { Icon(AppIcons.Sort, contentDescription = "Sort") }
+                IconButton(onClick = { sortMenu = true }) { Icon(AppIcons.Sort, contentDescription = t("Sort", "Urutkan")) }
                 DropdownMenu(expanded = sortMenu, onDismissRequest = { sortMenu = false }) {
                     TaskSort.entries.forEach { sort ->
                         DropdownMenuItem(
-                            text = { Text((if (sort == settings.taskSort) "✓ " else "    ") + sort.label) },
+                            text = { Text((if (sort == settings.taskSort) "✓ " else "    ") + t.taskSort(sort)) },
                             onClick = {
                                 sortMenu = false
                                 vm.setSort(sort)
@@ -133,7 +143,7 @@ fun TasksScreen(nav: Navigator) {
             ExtendedFloatingActionButton(
                 onClick = { nav.navigate(Routes.TASK_NEW) },
                 icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text("Add task") },
+                text = { Text(t("Add task", "Tambah tugas")) },
             )
         },
     ) { padding ->
@@ -141,9 +151,9 @@ fun TasksScreen(nav: Navigator) {
             FormColumn(padding) {
                 EmptyState(
                     emoji = "✅",
-                    title = "No tasks yet",
-                    message = "Add your first task and its deadline. Reminders work offline.",
-                    actionLabel = "Add task",
+                    title = t("No tasks yet", "Belum ada tugas"),
+                    message = t("Add your first task and its deadline. Reminders work offline.", "Tambahkan tugas pertama beserta deadline-nya. Pengingat tetap jalan tanpa internet."),
+                    actionLabel = t("Add task", "Tambah tugas"),
                     onAction = { nav.navigate(Routes.TASK_NEW) },
                 )
             }
@@ -160,24 +170,24 @@ fun TasksScreen(nav: Navigator) {
                                 .clickable { showCompleted = !showCompleted },
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            SectionTitle("Completed (${sectionTasks.size})", Modifier.weight(1f))
+                            SectionTitle(t.taskSection(section) + " (${sectionTasks.size})", Modifier.weight(1f))
                             Icon(
                                 if (showCompleted) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                                contentDescription = if (showCompleted) "Hide completed" else "Show completed",
+                                contentDescription = if (showCompleted) t("Hide completed", "Sembunyikan yang selesai") else t("Show completed", "Tampilkan yang selesai"),
                             )
                         }
                     }
                     if (showCompleted) {
                         items(sectionTasks, key = { it.id }) { task ->
-                            TaskRow(task, now, zone, onToggle, onOpen = { nav.navigate(Routes.task(task.id)) })
+                            TaskRow(task, now, zone, t, onToggle, onOpen = { nav.navigate(Routes.task(task.id)) })
                         }
                     }
                 } else {
                     item(key = "header-${section.name}") {
-                        SectionTitle("${section.label} (${sectionTasks.size})", Modifier.readable())
+                        SectionTitle(t.taskSection(section) + " (${sectionTasks.size})", Modifier.readable())
                     }
                     items(sectionTasks, key = { it.id }) { task ->
-                        TaskRow(task, now, zone, onToggle, onOpen = { nav.navigate(Routes.task(task.id)) })
+                        TaskRow(task, now, zone, t, onToggle, onOpen = { nav.navigate(Routes.task(task.id)) })
                     }
                 }
             }
@@ -186,7 +196,7 @@ fun TasksScreen(nav: Navigator) {
 }
 
 @Composable
-private fun TaskRow(task: Task, now: Long, zone: ZoneId, onToggle: (Task, Boolean) -> Unit, onOpen: () -> Unit) {
+private fun TaskRow(task: Task, now: Long, zone: ZoneId, t: Lang, onToggle: (Task, Boolean) -> Unit, onOpen: () -> Unit) {
     val status = Deadlines.status(task, now, zone)
     Card(onClick = onOpen, modifier = Modifier.readable()) {
         Row(Modifier.padding(end = 12.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -201,9 +211,9 @@ private fun TaskRow(task: Task, now: Long, zone: ZoneId, onToggle: (Task, Boolea
                 )
                 val details = buildList {
                     if (task.course.isNotBlank()) add(task.course)
-                    task.deadline?.let { add(if (task.completed) Fmt.dateTime(it, zone) else Deadlines.describe(it, now, zone)) }
-                    task.estimateMinutes?.let { add("~${Fmt.duration(it)}") }
-                    if (task.subtasks.isNotEmpty()) add("${task.subtasks.count { it.done }}/${task.subtasks.size} steps")
+                    task.deadline?.let { add(if (task.completed) t.dateTime(it, zone) else t.dueText(it, now, zone)) }
+                    task.estimateMinutes?.let { add("~" + t.durationShort(it)) }
+                    if (task.subtasks.isNotEmpty()) add("${task.subtasks.count { it.done }}/${task.subtasks.size} " + t("steps", "langkah"))
                 }
                 if (details.isNotEmpty()) {
                     Text(
@@ -216,8 +226,8 @@ private fun TaskRow(task: Task, now: Long, zone: ZoneId, onToggle: (Task, Boolea
                 }
                 if (!task.completed) {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        if (status != DeadlineStatus.NO_DEADLINE) StatusPill(status.label, statusColor(status))
-                        StatusPill(task.priority.label, priorityColor(task.priority))
+                        if (status != DeadlineStatus.NO_DEADLINE) StatusPill(t.status(status), statusColor(status))
+                        StatusPill(t.priority(task.priority), priorityColor(task.priority))
                     }
                 }
             }

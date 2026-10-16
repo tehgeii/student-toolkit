@@ -7,8 +7,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-val appVersionName = "0.9.0"
-val appVersionCode = 9
+val appVersionName = "0.10.0"
+val appVersionCode = 10
 
 // Release signing is read from keystore.properties (git-ignored) or environment variables.
 // Nothing secret is ever stored in this repository.

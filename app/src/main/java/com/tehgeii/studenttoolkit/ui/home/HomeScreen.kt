@@ -42,7 +42,13 @@ import com.tehgeii.studenttoolkit.domain.tasks.DeadlineStatus
 import com.tehgeii.studenttoolkit.domain.tasks.Deadlines
 import com.tehgeii.studenttoolkit.domain.tasks.Task
 import com.tehgeii.studenttoolkit.domain.tasks.TaskOrganizer
+import com.tehgeii.studenttoolkit.i18n.Lang
+import com.tehgeii.studenttoolkit.i18n.dueText
+import com.tehgeii.studenttoolkit.i18n.durationShort
+import com.tehgeii.studenttoolkit.i18n.greeting
+import com.tehgeii.studenttoolkit.i18n.longDate
 import com.tehgeii.studenttoolkit.ui.LocalContainer
+import com.tehgeii.studenttoolkit.ui.LocalLang
 import com.tehgeii.studenttoolkit.ui.Navigator
 import com.tehgeii.studenttoolkit.ui.Routes
 import com.tehgeii.studenttoolkit.ui.components.AppScaffold
@@ -61,17 +67,17 @@ class HomeViewModel(container: AppContainer) : ViewModel() {
     val timer = container.focus.timer
 }
 
-private data class QuickTool(val emoji: String, val label: String, val route: String)
+private data class QuickTool(val emoji: String, val en: String, val id: String, val route: String)
 
 private val quickTools = listOf(
-    QuickTool("📊", "Grade", Routes.GRADE),
-    QuickTool("🎓", "GPA", Routes.ACADEMIC),
-    QuickTool("➕", "Add task", Routes.TASK_NEW),
-    QuickTool("🍅", "Pomodoro", Routes.POMODORO),
-    QuickTool("🎲", "Random", Routes.randomizer(0)),
-    QuickTool("🔳", "QR", Routes.QR),
-    QuickTool("⏱️", "Timer", Routes.TIMER),
-    QuickTool("📝", "Notes", Routes.NOTES),
+    QuickTool("📊", "Grade", "Nilai", Routes.GRADE),
+    QuickTool("🎓", "GPA", "IPK", Routes.ACADEMIC),
+    QuickTool("➕", "Add task", "Tugas baru", Routes.TASK_NEW),
+    QuickTool("🍅", "Pomodoro", "Pomodoro", Routes.POMODORO),
+    QuickTool("🎲", "Random", "Acak", Routes.randomizer(0)),
+    QuickTool("🔳", "QR", "QR", Routes.QR),
+    QuickTool("⏱️", "Timer", "Timer", Routes.TIMER),
+    QuickTool("📝", "Notes", "Catatan", Routes.NOTES),
 )
 
 @Composable
@@ -85,22 +91,18 @@ fun HomeScreen(nav: Navigator) {
     val pomodoro by vm.pomodoro.collectAsStateWithLifecycle()
     val timer by vm.timer.collectAsStateWithLifecycle()
 
+    val t = LocalLang.current
     val now = rememberWallNow()
     val zone = ZoneId.systemDefault()
     val dateTime = Instant.ofEpochMilli(now).atZone(zone)
-    val greeting = when (dateTime.hour) {
-        in 4..10 -> "Good morning"
-        in 11..14 -> "Good afternoon"
-        in 15..18 -> "Good evening"
-        else -> "Good night"
-    }
+    val greeting = t.greeting(dateTime.hour)
     val name = settings.profile.name.trim()
 
     AppScaffold(
         title = "Student Toolkit",
         actions = {
             IconButton(onClick = { nav.navigate(Routes.SETTINGS) }) {
-                Icon(Icons.Filled.Settings, contentDescription = "Settings")
+                Icon(Icons.Filled.Settings, contentDescription = t("Settings", "Pengaturan"))
             }
         },
     ) { padding ->
@@ -112,7 +114,7 @@ fun HomeScreen(nav: Navigator) {
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    Fmt.longDate(dateTime.toLocalDate()),
+                    t.longDate(dateTime.toLocalDate()),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -127,9 +129,12 @@ fun HomeScreen(nav: Navigator) {
                     Text(
                         when {
                             pomodoro.countdown.isRunning && pomodoro.phase == FocusPhase.FOCUS ->
-                                "⏳ Focus session ${pomodoro.session} of ${pomodoro.sessionsPerCycle} is running"
-                            pomodoro.countdown.isRunning -> "☕ Break is running"
-                            else -> "⏱️ Timer is running"
+                                t(
+                                    "⏳ Focus session ${pomodoro.session} of ${pomodoro.sessionsPerCycle} is running",
+                                    "⏳ Sesi fokus ${pomodoro.session} dari ${pomodoro.sessionsPerCycle} sedang berjalan",
+                                )
+                            pomodoro.countdown.isRunning -> t("☕ Break is running", "☕ Istirahat sedang berjalan")
+                            else -> t("⏱️ Timer is running", "⏱️ Timer sedang berjalan")
                         },
                         modifier = Modifier.padding(16.dp),
                         style = MaterialTheme.typography.bodyLarge,
@@ -137,35 +142,35 @@ fun HomeScreen(nav: Navigator) {
                 }
             }
 
-            DueSoonCard(tasks, now, zone, nav)
+            DueSoonCard(tasks, now, zone, nav, t)
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 val gpa = GpaCalculator.cumulative(academic.semesters, settings.gradeScale)
                 StatCard(
-                    title = "GPA (IPK)",
+                    title = t("GPA (IPK)", "IPK"),
                     value = gpa.gpa?.let { Fmt.fixed(it, settings.gpaDecimals) } ?: "—",
-                    caption = if (gpa.totalCredits > 0) "${gpa.totalCredits} SKS" else "Add semesters",
+                    caption = if (gpa.totalCredits > 0) "${gpa.totalCredits} SKS" else t("Add semesters", "Tambah semester"),
                     modifier = Modifier.weight(1f),
                     onClick = { nav.selectTab(Routes.ACADEMIC) },
                 )
                 val today = focusStats[dateTime.toLocalDate().toString()]
                 StatCard(
-                    title = "Focus today",
-                    value = if (today == null) "0m" else Fmt.duration(today.minutes),
-                    caption = "${today?.sessions ?: 0} sessions",
+                    title = t("Focus today", "Fokus hari ini"),
+                    value = t.durationShort(today?.minutes ?: 0),
+                    caption = t.count(today?.sessions ?: 0, "session", "sessions", "sesi"),
                     modifier = Modifier.weight(1f),
                     onClick = { nav.navigate(Routes.POMODORO) },
                 )
             }
 
-            SectionTitle("Quick tools")
-            QuickToolGrid { nav.navigate(it) }
+            SectionTitle(t("Quick tools", "Alat cepat"))
+            QuickToolGrid(t) { nav.navigate(it) }
         }
     }
 }
 
 @Composable
-private fun DueSoonCard(tasks: List<Task>, now: Long, zone: ZoneId, nav: Navigator) {
+private fun DueSoonCard(tasks: List<Task>, now: Long, zone: ZoneId, nav: Navigator, t: Lang) {
     val upcoming = TaskOrganizer.upcoming(tasks)
     val thisWeek = upcoming.count { task ->
         val deadline = task.deadline ?: return@count false
@@ -175,22 +180,21 @@ private fun DueSoonCard(tasks: List<Task>, now: Long, zone: ZoneId, nav: Navigat
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Due soon", style = MaterialTheme.typography.titleMedium)
+                    Text(t("Due soon", "Segera jatuh tempo"), style = MaterialTheme.typography.titleMedium)
                     Text(
                         when (thisWeek) {
-                            0 -> "No deadlines this week"
-                            1 -> "1 deadline this week"
-                            else -> "$thisWeek deadlines this week"
+                            0 -> t("No deadlines this week", "Tidak ada deadline minggu ini")
+                            else -> t.count(thisWeek, "deadline", "deadlines", "deadline") + t(" this week", " minggu ini")
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                TextButton(onClick = { nav.selectTab(Routes.TASKS) }) { Text("All tasks") }
+                TextButton(onClick = { nav.selectTab(Routes.TASKS) }) { Text(t("All tasks", "Semua tugas")) }
             }
             if (upcoming.isEmpty()) {
-                Text("Nothing due. Enjoy the free time 🎉", style = MaterialTheme.typography.bodyMedium)
-                TextButton(onClick = { nav.navigate(Routes.TASK_NEW) }) { Text("+ Add task") }
+                Text(t("Nothing due. Enjoy the free time 🎉", "Tidak ada deadline. Nikmati waktu luangmu 🎉"), style = MaterialTheme.typography.bodyMedium)
+                TextButton(onClick = { nav.navigate(Routes.TASK_NEW) }) { Text(t("+ Add task", "+ Tambah tugas")) }
             } else {
                 upcoming.take(3).forEachIndexed { index, task ->
                     if (index > 0) HorizontalDivider()
@@ -212,7 +216,7 @@ private fun DueSoonCard(tasks: List<Task>, now: Long, zone: ZoneId, nav: Navigat
                         Column(Modifier.weight(1f)) {
                             Text(task.title, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge)
                             Text(
-                                Deadlines.describe(task.deadline ?: now, now, zone),
+                                t.dueText(task.deadline ?: now, now, zone),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -236,7 +240,7 @@ private fun StatCard(title: String, value: String, caption: String, modifier: Mo
 }
 
 @Composable
-private fun QuickToolGrid(onOpen: (String) -> Unit) {
+private fun QuickToolGrid(t: Lang, onOpen: (String) -> Unit) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val columns = (maxWidth / 88.dp).toInt().coerceIn(4, 8)
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -253,7 +257,7 @@ private fun QuickToolGrid(onOpen: (String) -> Unit) {
                                 Text(tool.emoji, fontSize = 24.sp)
                                 Spacer(Modifier.height(4.dp))
                                 Text(
-                                    tool.label,
+                                    t(tool.en, tool.id),
                                     style = MaterialTheme.typography.labelMedium,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
