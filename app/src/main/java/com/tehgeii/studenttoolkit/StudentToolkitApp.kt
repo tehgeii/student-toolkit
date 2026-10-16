@@ -20,6 +20,7 @@ import com.tehgeii.studenttoolkit.i18n.Lang
 import com.tehgeii.studenttoolkit.notify.FocusEngine
 import com.tehgeii.studenttoolkit.notify.Notifier
 import com.tehgeii.studenttoolkit.notify.ReminderScheduler
+import com.tehgeii.studenttoolkit.widget.DeadlinesWidget
 import java.io.File
 import java.util.concurrent.Executors
 import kotlinx.coroutines.CoroutineScope
@@ -32,6 +33,7 @@ class StudentToolkitApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        CrashReporter.install(this)
         Notifier.createChannels(this, container.lang())
     }
 
@@ -59,8 +61,10 @@ class AppContainer(private val context: Context) {
             JsonRepository<List<Task>>(
                 store("tasks.json"), scope, writer, JsonDocuments::tasks, { Codecs.encodeTasks(it).toString() }, emptyList(),
             ),
-            reminders,
-        )
+        ) { old, new ->
+            reminders.onTaskChanged(old, new)
+            DeadlinesWidget.requestRefresh(context)
+        }
     }
 
     val notes: NoteRepository by lazy {
@@ -103,6 +107,7 @@ class AppContainer(private val context: Context) {
         appliedLang = lang
         Notifier.createChannels(context, lang)
         focus.restoreAlarms()
+        DeadlinesWidget.requestRefresh(context)
         return true
     }
 

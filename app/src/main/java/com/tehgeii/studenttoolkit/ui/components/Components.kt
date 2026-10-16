@@ -64,7 +64,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -158,8 +163,19 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier) {
         text,
         style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.primary,
-        modifier = modifier.padding(top = 8.dp),
+        modifier = modifier.padding(top = 8.dp).semantics { heading() },
     )
+}
+
+/** Emoji used as decoration: TalkBack skips it because the text next to it says the same. */
+fun Modifier.decorative(): Modifier = this.clearAndSetSemantics {}
+
+/** Big numbers (timers) grow with the system font size, but only up to [maxScale] so they still fit. */
+@Composable
+fun TextStyle.cappedScale(maxScale: Float = 1.3f): TextStyle {
+    val scale = LocalDensity.current.fontScale
+    if (scale <= maxScale) return this
+    return copy(fontSize = fontSize * (maxScale / scale))
 }
 
 @Composable
@@ -345,7 +361,7 @@ fun EmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(emoji, style = MaterialTheme.typography.displaySmall)
+        Text(emoji, style = MaterialTheme.typography.displaySmall, modifier = Modifier.decorative())
         Text(title, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
         Text(
             message,
@@ -379,7 +395,7 @@ fun ResultCard(
 fun InfoCard(text: String, modifier: Modifier = Modifier, emoji: String = "ℹ️", container: Color = MaterialTheme.colorScheme.surfaceVariant) {
     Surface(modifier.fillMaxWidth(), color = container, shape = RoundedCornerShape(12.dp)) {
         Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(emoji)
+            Text(emoji, modifier = Modifier.decorative())
             Text(text, style = MaterialTheme.typography.bodyMedium)
         }
     }

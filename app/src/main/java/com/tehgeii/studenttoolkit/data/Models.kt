@@ -24,6 +24,8 @@ data class AppSettings(
     val language: AppLanguage = AppLanguage.SYSTEM,
     val dynamicColor: Boolean = false,
     val gpaDecimals: Int = 2,
+    /** Decimal places for scores (grade calculator), 1–3. */
+    val scoreDecimals: Int = 2,
     val gradeScale: GradeScale = GradeScale.DEFAULT,
     val defaultReminders: List<Int> = listOf(24 * 60, 3 * 60),
     val taskSort: TaskSort = TaskSort.SMART,
@@ -35,21 +37,29 @@ data class GradeDraftRow(val id: String, val name: String, val weight: String, v
     fun toComponent() = GradeComponent(name, parseNumber(weight), parseNumber(score))
 }
 
-data class GradeDraft(
+/** One saved grade calculation, usually one per course. */
+data class GradeCalc(
+    val id: String,
     val course: String = "",
-    val rows: List<GradeDraftRow> = template(Lang.resolve(AppLanguage.SYSTEM).indonesian),
+    val rows: List<GradeDraftRow> = GradeTemplate.rows(Lang.resolve(AppLanguage.SYSTEM).indonesian),
+    /** Letter chosen in the target planner; empty means the best grade. */
+    val targetLetter: String = "",
+    val updatedAt: Long = 0L,
 ) {
-    companion object {
-        fun template(indonesian: Boolean): List<GradeDraftRow> = listOf(
-            GradeDraftRow(newId(), if (indonesian) "Kehadiran" else "Attendance", "10", ""),
-            GradeDraftRow(newId(), if (indonesian) "Tugas" else "Assignment", "20", ""),
-            GradeDraftRow(newId(), if (indonesian) "UTS" else "Midterm", "30", ""),
-            GradeDraftRow(newId(), if (indonesian) "UAS" else "Final", "40", ""),
-        )
-    }
+    /** Nothing typed yet: no course name and no scores. */
+    val isUntouched: Boolean get() = course.isBlank() && rows.all { it.score.isBlank() }
+}
+
+object GradeTemplate {
+    fun rows(indonesian: Boolean): List<GradeDraftRow> = listOf(
+        GradeDraftRow(newId(), if (indonesian) "Kehadiran" else "Attendance", "10", ""),
+        GradeDraftRow(newId(), if (indonesian) "Tugas" else "Assignment", "20", ""),
+        GradeDraftRow(newId(), if (indonesian) "UTS" else "Midterm", "30", ""),
+        GradeDraftRow(newId(), if (indonesian) "UAS" else "Final", "40", ""),
+    )
 }
 
 data class AcademicData(
     val semesters: List<Semester> = emptyList(),
-    val draft: GradeDraft = GradeDraft(),
+    val calculations: List<GradeCalc> = emptyList(),
 )

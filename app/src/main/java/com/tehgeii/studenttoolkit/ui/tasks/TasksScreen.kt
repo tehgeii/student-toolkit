@@ -32,6 +32,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -179,7 +181,7 @@ fun TasksScreen(nav: Navigator) {
                     }
                     if (showCompleted) {
                         items(sectionTasks, key = { it.id }) { task ->
-                            TaskRow(task, now, zone, t, onToggle, onOpen = { nav.navigate(Routes.task(task.id)) })
+                            TaskRow(task, now, zone, t, onToggle, onOpen = { nav.navigate(Routes.task(task.id)) }, modifier = Modifier.animateItem())
                         }
                     }
                 } else {
@@ -187,7 +189,7 @@ fun TasksScreen(nav: Navigator) {
                         SectionTitle(t.taskSection(section) + " (${sectionTasks.size})", Modifier.readable())
                     }
                     items(sectionTasks, key = { it.id }) { task ->
-                        TaskRow(task, now, zone, t, onToggle, onOpen = { nav.navigate(Routes.task(task.id)) })
+                        TaskRow(task, now, zone, t, onToggle, onOpen = { nav.navigate(Routes.task(task.id)) }, modifier = Modifier.animateItem())
                     }
                 }
             }
@@ -196,11 +198,15 @@ fun TasksScreen(nav: Navigator) {
 }
 
 @Composable
-private fun TaskRow(task: Task, now: Long, zone: ZoneId, t: Lang, onToggle: (Task, Boolean) -> Unit, onOpen: () -> Unit) {
+private fun TaskRow(task: Task, now: Long, zone: ZoneId, t: Lang, onToggle: (Task, Boolean) -> Unit, onOpen: () -> Unit, modifier: Modifier = Modifier) {
     val status = Deadlines.status(task, now, zone)
-    Card(onClick = onOpen, modifier = Modifier.readable()) {
+    Card(onClick = onOpen, modifier = modifier.readable()) {
         Row(Modifier.padding(end = 12.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = task.completed, onCheckedChange = { onToggle(task, it) })
+            Checkbox(
+                checked = task.completed,
+                onCheckedChange = { onToggle(task, it) },
+                modifier = Modifier.semantics { contentDescription = t("Done: ${task.title}", "Selesai: ${task.title}") },
+            )
             Column(Modifier.weight(1f).padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     task.title,

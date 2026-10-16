@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -54,6 +55,7 @@ import com.tehgeii.studenttoolkit.ui.Routes
 import com.tehgeii.studenttoolkit.ui.components.AppScaffold
 import com.tehgeii.studenttoolkit.ui.components.FormColumn
 import com.tehgeii.studenttoolkit.ui.components.SectionTitle
+import com.tehgeii.studenttoolkit.ui.components.decorative
 import com.tehgeii.studenttoolkit.ui.components.rememberWallNow
 import java.time.Instant
 import java.time.ZoneId
@@ -101,6 +103,9 @@ fun HomeScreen(nav: Navigator) {
     AppScaffold(
         title = "Student Toolkit",
         actions = {
+            IconButton(onClick = { nav.navigate(Routes.SEARCH) }) {
+                Icon(Icons.Filled.Search, contentDescription = t("Search", "Cari"))
+            }
             IconButton(onClick = { nav.navigate(Routes.SETTINGS) }) {
                 Icon(Icons.Filled.Settings, contentDescription = t("Settings", "Pengaturan"))
             }
@@ -254,7 +259,7 @@ private fun QuickToolGrid(t: Lang, onOpen: (String) -> Unit) {
                                     .padding(vertical = 12.dp, horizontal = 4.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
-                                Text(tool.emoji, fontSize = 24.sp)
+                                Text(tool.emoji, fontSize = 24.sp, modifier = Modifier.decorative())
                                 Spacer(Modifier.height(4.dp))
                                 Text(
                                     t(tool.en, tool.id),

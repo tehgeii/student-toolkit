@@ -43,6 +43,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.tehgeii.studenttoolkit.core.Fmt
@@ -269,6 +271,7 @@ fun TaskEditorScreen(idParam: String, nav: Navigator, onBack: () -> Unit) {
                         Checkbox(
                             checked = sub.done,
                             onCheckedChange = { done -> form = form.copy(subtasks = form.subtasks.map { if (it.id == sub.id) it.copy(done = done) else it }) },
+                            modifier = Modifier.semantics { contentDescription = t("Step done: ${sub.title}", "Langkah selesai: ${sub.title}") },
                         )
                         TextInput(
                             sub.title,

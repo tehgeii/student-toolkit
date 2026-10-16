@@ -5,8 +5,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-val appVersionName = "0.10.0"
-val appVersionCode = 10
+val appVersionName = "0.11.0"
+val appVersionCode = 11
 
 // Release signing is read from keystore.properties (git-ignored) or environment variables.
 // Nothing secret is ever stored in this repository.
@@ -68,6 +68,16 @@ android {
 
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
+    }
+
+    lint {
+        // Runs on CI for every push: errors fail the build, warnings are listed in the report.
+        abortOnError = true
+        checkReleaseBuilds = false
+        textReport = true
+        textOutput = file("build/reports/lint-results.txt")
+        // Version-update reminders are handled by hand; targetSdk is raised only after testing on the new Android.
+        disable += setOf("GradleDependency", "AndroidGradlePluginVersion", "NewerVersionAvailable", "OldTargetApi")
     }
 
     dependenciesInfo {

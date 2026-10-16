@@ -5,6 +5,10 @@ data class Course(
     val name: String,
     val credits: Int,
     val grade: String,
+    /** Optional course code, e.g. "TI-201". */
+    val code: String = "",
+    /** Optional lecturer name. */
+    val lecturer: String = "",
 )
 
 /**

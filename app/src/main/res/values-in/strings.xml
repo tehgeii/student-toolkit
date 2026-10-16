@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_deadlines_label">Deadline</string>
+    <string name="widget_deadlines_title">Deadline</string>
+    <string name="widget_deadlines_empty">Tidak ada deadline terdekat</string>
+    <string name="widget_deadlines_description">Tiga deadline terdekatmu sekilas</string>
+</resources>

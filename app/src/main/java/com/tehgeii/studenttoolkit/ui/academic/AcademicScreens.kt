@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -44,7 +45,7 @@ import com.tehgeii.studenttoolkit.core.Fmt
 import com.tehgeii.studenttoolkit.core.newId
 import com.tehgeii.studenttoolkit.core.parseNumber
 import com.tehgeii.studenttoolkit.data.AcademicRepository
-import com.tehgeii.studenttoolkit.data.GradeDraft
+import com.tehgeii.studenttoolkit.data.GradeCalc
 import com.tehgeii.studenttoolkit.data.SettingsRepository
 import com.tehgeii.studenttoolkit.domain.academic.Course
 import com.tehgeii.studenttoolkit.domain.academic.GpaCalculator
@@ -73,6 +74,7 @@ import com.tehgeii.studenttoolkit.ui.components.ResultCard
 import com.tehgeii.studenttoolkit.ui.components.SectionTitle
 import com.tehgeii.studenttoolkit.ui.components.Segmented
 import com.tehgeii.studenttoolkit.ui.components.TextInput
+import com.tehgeii.studenttoolkit.ui.components.decorative
 import com.tehgeii.studenttoolkit.ui.components.readable
 import java.io.Serializable
 
@@ -85,7 +87,11 @@ class AcademicViewModel(private val repo: AcademicRepository, private val settin
     fun deleteSemester(id: String): Semester? = repo.deleteSemester(id)
     fun restoreSemester(semester: Semester) = repo.restoreSemester(semester)
     fun removeIfUntouched(id: String) = repo.removeIfUntouched(id)
-    fun updateDraft(transform: (GradeDraft) -> GradeDraft) = repo.updateDraft(transform)
+    fun createCalculation(course: String, indonesian: Boolean): String = repo.createCalculation(course, indonesian).id
+    fun updateCalculation(id: String, transform: (GradeCalc) -> GradeCalc) = repo.updateCalculation(id, transform)
+    fun deleteCalculation(id: String): GradeCalc? = repo.deleteCalculation(id)
+    fun restoreCalculation(calc: GradeCalc) = repo.restoreCalculation(calc)
+    fun removeCalculationIfUntouched(id: String) = repo.removeCalculationIfUntouched(id)
     fun updateScale(scale: GradeScale) = settingsRepo.update { it.copy(gradeScale = scale) }
 }
 
@@ -194,7 +200,7 @@ fun ToolRow(emoji: String, title: String, subtitle: String, onClick: () -> Unit)
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(emoji, style = MaterialTheme.typography.titleLarge)
+            Text(emoji, style = MaterialTheme.typography.titleLarge, modifier = Modifier.decorative())
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleSmall)
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -355,6 +361,9 @@ private fun CourseRow(course: Course, letters: List<String>, onChange: (Course) 
     val t = LocalLang.current
     var name by rememberSaveable { mutableStateOf(course.name) }
     var credits by rememberSaveable { mutableStateOf(if (course.credits > 0) course.credits.toString() else "") }
+    var code by rememberSaveable { mutableStateOf(course.code) }
+    var lecturer by rememberSaveable { mutableStateOf(course.lecturer) }
+    var showDetails by rememberSaveable { mutableStateOf(course.code.isNotBlank() || course.lecturer.isNotBlank()) }
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -388,6 +397,35 @@ private fun CourseRow(course: Course, letters: List<String>, onChange: (Course) 
                     onSelect = { onChange(course.copy(grade = it)) },
                     modifier = Modifier.weight(1f),
                 )
+            }
+            if (showDetails) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextInput(
+                        code,
+                        {
+                            code = it.take(20)
+                            onChange(course.copy(code = code))
+                        },
+                        t("Code", "Kode"),
+                        modifier = Modifier.weight(1f),
+                        capitalization = KeyboardCapitalization.Characters,
+                    )
+                    TextInput(
+                        lecturer,
+                        {
+                            lecturer = it.take(80)
+                            onChange(course.copy(lecturer = lecturer))
+                        },
+                        t("Lecturer", "Dosen"),
+                        modifier = Modifier.weight(1.6f),
+                        capitalization = KeyboardCapitalization.Words,
+                    )
+                }
+            } else {
+                TextButton(onClick = { showDetails = true }) {
+                    Icon(Icons.Filled.Add, contentDescription = null)
+                    Text(t("Course code & lecturer", "Kode mata kuliah & dosen"))
+                }
             }
         }
     }

@@ -11,11 +11,12 @@ import com.tehgeii.studenttoolkit.ui.components.ListColumn
 import com.tehgeii.studenttoolkit.ui.components.SectionTitle
 import com.tehgeii.studenttoolkit.ui.components.readable
 
-private class Text2(val en: String, val id: String)
+class Text2(val en: String, val id: String)
 
-private data class ToolEntry(val emoji: String, val title: Text2, val subtitle: Text2, val route: String)
+data class ToolEntry(val emoji: String, val title: Text2, val subtitle: Text2, val route: String)
 
-private val sections = listOf(
+/** Every tool in the Tools tab; the global search uses the same list. */
+val toolSections = listOf(
     Text2("Classroom", "Kelas") to listOf(
         ToolEntry("👥", Text2("Group randomizer", "Acak kelompok"), Text2("Split names into fair random groups", "Bagi nama ke kelompok acak yang adil"), Routes.randomizer(0)),
         ToolEntry("🎤", Text2("Presentation order", "Urutan presentasi"), Text2("Who presents first?", "Siapa yang presentasi duluan?"), Routes.randomizer(1)),
@@ -32,6 +33,13 @@ private val sections = listOf(
         ToolEntry("％", Text2("Percentage", "Persentase"), Text2("Percent of, change, discount", "Persen dari, perubahan, diskon"), Routes.PERCENT),
         ToolEntry("📝", Text2("Notes", "Catatan"), Text2("Quick notes with search", "Catatan cepat dengan pencarian"), Routes.NOTES),
     ),
+    Text2("Developer", "Developer") to listOf(
+        ToolEntry("🔢", Text2("Number base", "Basis bilangan"), Text2("Binary, octal, decimal, hex", "Biner, oktal, desimal, heksadesimal"), Routes.devTools(0)),
+        ToolEntry("🕒", Text2("Unix timestamp", "Timestamp Unix"), Text2("Epoch ↔ date and time", "Epoch ↔ tanggal dan jam"), Routes.devTools(1)),
+        ToolEntry("{ }", Text2("JSON formatter", "Perapi JSON"), Text2("Validate, format, minify", "Validasi, rapikan, ringkas"), Routes.devTools(2)),
+        ToolEntry("🎨", Text2("Color converter", "Konversi warna"), Text2("HEX, RGB, HSL", "HEX, RGB, HSL"), Routes.devTools(3)),
+        ToolEntry("🔍", Text2("Regex tester", "Uji regex"), Text2("Matches and groups, highlighted", "Kecocokan dan grup, disorot"), Routes.devTools(4)),
+    ),
 )
 
 @Composable
@@ -39,7 +47,7 @@ fun ToolsScreen(nav: Navigator) {
     val t = LocalLang.current
     AppScaffold(title = t("Tools", "Alat")) { padding ->
         ListColumn(padding) {
-            sections.forEach { (title, tools) ->
+            toolSections.forEach { (title, tools) ->
                 item(key = "section-${title.en}") { SectionTitle(t(title.en, title.id), Modifier.readable()) }
                 tools.forEach { tool ->
                     item(key = tool.route) {

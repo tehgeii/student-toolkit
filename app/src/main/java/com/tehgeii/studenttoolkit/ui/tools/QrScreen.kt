@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Share
@@ -38,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -169,8 +171,11 @@ fun QrScreen(onBack: () -> Unit) {
                             capitalization = KeyboardCapitalization.None, keyboardType = KeyboardType.Password,
                         )
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = hidden, onCheckedChange = { hidden = it })
+                    Row(
+                        Modifier.fillMaxWidth().toggleable(value = hidden, role = Role.Checkbox, onValueChange = { hidden = it }),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(checked = hidden, onCheckedChange = null)
                         Text(t("Hidden network", "Jaringan tersembunyi"))
                     }
                     InfoCard(t("This QR code contains your Wi-Fi password. Share carefully.", "Kode QR ini berisi password Wi-Fi kamu. Bagikan dengan hati-hati."), emoji = "🔐")

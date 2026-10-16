@@ -37,7 +37,7 @@ class BackupException(val reason: BackupError, val detail: String = "", cause: T
  *   "settings": {...}, "academic": {...}, "tasks": [...], "notes": [...], "focus": {...} }
  */
 object BackupCodec {
-    const val SCHEMA_VERSION = 1
+    const val SCHEMA_VERSION = 2
     const val APP_ID = "StudentToolkit"
     const val MAX_BYTES = 20 * 1024 * 1024
 
@@ -90,13 +90,13 @@ object BackupCodec {
         }
     }
 
-    /** Upgrades older schemas step by step (v1 → v2 → …). v1 is current, so this is the identity for now. */
+    /** Upgrades older schemas one step at a time (v1 → v2 → …). */
     internal fun migrate(root: JSONObject, fromVersion: Int): JSONObject {
         var json = root
         var version = fromVersion
         while (version < SCHEMA_VERSION) {
             json = when (version) {
-                // Future: 1 -> { migrate v1 fields into v2 shape }
+                1 -> migrateV1ToV2(json)
                 else -> json
             }
             version++
@@ -104,14 +104,25 @@ object BackupCodec {
         return json
     }
 
+    /** v2 replaced the single grade-calculator draft with a list of saved calculations. */
+    private fun migrateV1ToV2(json: JSONObject): JSONObject {
+        val academic = json.optJSONObject("academic") ?: return json
+        if (!academic.has("calculations")) {
+            academic.put("calculations", Codecs.legacyDraftToCalculations(academic.optJSONObject("draft")))
+        }
+        academic.remove("draft")
+        return json
+    }
+
     /**
-     * Merge keeps current settings and grade-calculator draft, adds items that do not exist yet,
+     * Merge keeps current settings, adds items that do not exist yet,
      * and for items present on both sides keeps the most recently updated one. Importing the same
      * backup twice therefore never creates duplicates.
      */
     fun merge(current: BackupData, incoming: BackupData): BackupData = current.copy(
         academic = current.academic.copy(
             semesters = mergeById(current.academic.semesters, incoming.academic.semesters, Semester::id, Semester::updatedAt),
+            calculations = mergeById(current.academic.calculations, incoming.academic.calculations, GradeCalc::id, GradeCalc::updatedAt),
         ),
         tasks = mergeById(current.tasks, incoming.tasks, Task::id, Task::updatedAt),
         notes = mergeById(current.notes, incoming.notes, Note::id, Note::updatedAt),

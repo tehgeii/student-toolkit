@@ -135,7 +135,7 @@ fun NotesScreen(nav: Navigator, onBack: () -> Unit) {
                 }
             }
             items(visible, key = { it.id }) { note ->
-                Card(onClick = { nav.navigate(Routes.note(note.id)) }, modifier = Modifier.readable()) {
+                Card(onClick = { nav.navigate(Routes.note(note.id)) }, modifier = Modifier.animateItem().readable()) {
                     Column(Modifier.padding(16.dp)) {
                         Text(note.displayTitle, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         if (note.content.isNotBlank() && note.title.isNotBlank()) {

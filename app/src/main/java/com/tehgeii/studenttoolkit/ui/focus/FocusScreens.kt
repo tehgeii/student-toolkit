@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -46,10 +47,10 @@ import com.tehgeii.studenttoolkit.domain.focus.Countdown
 import com.tehgeii.studenttoolkit.domain.focus.DayFocus
 import com.tehgeii.studenttoolkit.domain.focus.FocusPhase
 import com.tehgeii.studenttoolkit.domain.focus.PomodoroState
-import com.tehgeii.studenttoolkit.notify.FocusEngine
 import com.tehgeii.studenttoolkit.i18n.Lang
 import com.tehgeii.studenttoolkit.i18n.durationShort
 import com.tehgeii.studenttoolkit.i18n.focusPhase
+import com.tehgeii.studenttoolkit.notify.FocusEngine
 import com.tehgeii.studenttoolkit.ui.LocalContainer
 import com.tehgeii.studenttoolkit.ui.LocalLang
 import com.tehgeii.studenttoolkit.ui.components.AppIcons
@@ -60,6 +61,7 @@ import com.tehgeii.studenttoolkit.ui.components.FormColumn
 import com.tehgeii.studenttoolkit.ui.components.NotificationPermissionCard
 import com.tehgeii.studenttoolkit.ui.components.NumberField
 import com.tehgeii.studenttoolkit.ui.components.SectionTitle
+import com.tehgeii.studenttoolkit.ui.components.cappedScale
 import com.tehgeii.studenttoolkit.ui.components.rememberElapsedNow
 import java.time.LocalDate
 
@@ -106,12 +108,13 @@ private fun Dial(progress: Float, top: String, time: String, bottom: String?) {
                 strokeWidth = 10.dp,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
             )
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(Modifier.semantics(mergeDescendants = true) {}, horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(top, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                 Text(
                     time,
-                    style = MaterialTheme.typography.displayMedium.merge(tabular),
+                    style = MaterialTheme.typography.displayMedium.merge(tabular).cappedScale(),
                     fontWeight = FontWeight.Bold,
+                    maxLines = 1,
                 )
                 if (bottom != null) Text(bottom, style = MaterialTheme.typography.bodyMedium)
             }
@@ -324,7 +327,7 @@ fun StopwatchScreen(onBack: () -> Unit) {
     AppScaffold(title = "Stopwatch", onBack = onBack) { padding ->
         FormColumn(padding) {
             Box(Modifier.fillMaxWidth().padding(vertical = 32.dp), contentAlignment = Alignment.Center) {
-                Text(Fmt.stopwatch(elapsed), style = MaterialTheme.typography.displayLarge.merge(tabular), fontWeight = FontWeight.Bold)
+                Text(Fmt.stopwatch(elapsed), style = MaterialTheme.typography.displayLarge.merge(tabular).cappedScale(), fontWeight = FontWeight.Bold, maxLines = 1)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 when {

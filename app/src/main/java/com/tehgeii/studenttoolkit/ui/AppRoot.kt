@@ -3,6 +3,11 @@
 package com.tehgeii.studenttoolkit.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,14 +41,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.tehgeii.studenttoolkit.AppContainer
+import com.tehgeii.studenttoolkit.CrashReporter
 import com.tehgeii.studenttoolkit.i18n.Lang
 import com.tehgeii.studenttoolkit.ui.academic.AcademicScreen
 import com.tehgeii.studenttoolkit.ui.academic.GpaGoalScreen
 import com.tehgeii.studenttoolkit.ui.academic.GradeCalculatorScreen
 import com.tehgeii.studenttoolkit.ui.academic.GradeConverterScreen
+import com.tehgeii.studenttoolkit.ui.academic.GradeListScreen
 import com.tehgeii.studenttoolkit.ui.academic.GradeScaleScreen
 import com.tehgeii.studenttoolkit.ui.academic.SemesterScreen
 import com.tehgeii.studenttoolkit.ui.components.AppIcons
@@ -56,11 +64,15 @@ import com.tehgeii.studenttoolkit.ui.notes.NotesScreen
 import com.tehgeii.studenttoolkit.ui.settings.SettingsScreen
 import com.tehgeii.studenttoolkit.ui.tasks.TaskEditorScreen
 import com.tehgeii.studenttoolkit.ui.tasks.TasksScreen
+import com.tehgeii.studenttoolkit.ui.search.SearchScreen
+import com.tehgeii.studenttoolkit.ui.tools.DevToolsScreen
 import com.tehgeii.studenttoolkit.ui.tools.PercentageScreen
 import com.tehgeii.studenttoolkit.ui.tools.QrScreen
 import com.tehgeii.studenttoolkit.ui.tools.RandomizerScreen
 import com.tehgeii.studenttoolkit.ui.tools.ToolsScreen
 import com.tehgeii.studenttoolkit.ui.tools.UnitConverterScreen
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private data class Tab(val route: String, val en: String, val id: String, val icon: ImageVector)
 
@@ -87,11 +99,24 @@ fun AppRoot(container: AppContainer, lang: Lang, deepLink: String?, onDeepLinkHa
     val snackbarHost = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val messenger = remember(snackbarHost, scope) { Messenger(snackbarHost, scope) }
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        val crashed = withContext(Dispatchers.IO) { CrashReporter.consumeUnseen(context) }
+        if (crashed) {
+            messenger.show(
+                lang("The app closed unexpectedly last time. A crash report is in Settings.", "Aplikasi tertutup mendadak sebelumnya. Laporan crash ada di Pengaturan."),
+                lang("View", "Lihat"),
+            ) { navigator.navigate(Routes.SETTINGS) }
+        }
+    }
 
     BackHandler(enabled = navigator.canGoBack) { navigator.back() }
 
     val route = navigator.current
     val showBottomBar = navigator.isTabRoot
+    // Keeps snackbars above the floating action button of these screens.
+    val hasFab = route == Routes.TASKS || route == Routes.NOTES || route == Routes.GRADE
 
     CompositionLocalProvider(LocalContainer provides container, LocalMessenger provides messenger, LocalLang provides lang) {
         Box(
@@ -112,8 +137,15 @@ fun AppRoot(container: AppContainer, lang: Lang, deepLink: String?, onDeepLinkHa
                             },
                         ),
                 ) {
-                    holder.SaveableStateProvider(route) {
-                        Screen(route, navigator)
+                    // A short cross-fade between screens; cheap enough for low-end phones.
+                    AnimatedContent(
+                        targetState = route,
+                        transitionSpec = { fadeIn(tween(160, delayMillis = 40)) togetherWith fadeOut(tween(100)) },
+                        label = "screen",
+                    ) { shown ->
+                        holder.SaveableStateProvider(shown) {
+                            Screen(shown, navigator)
+                        }
                     }
                 }
                 if (showBottomBar) {
@@ -135,7 +167,7 @@ fun AppRoot(container: AppContainer, lang: Lang, deepLink: String?, onDeepLinkHa
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
                     .imePadding()
-                    .padding(bottom = if (showBottomBar) 80.dp else 0.dp),
+                    .padding(bottom = (if (showBottomBar) 80.dp else 0.dp) + (if (hasFab) 72.dp else 0.dp)),
             )
         }
     }
@@ -150,7 +182,7 @@ private fun Screen(route: String, nav: Navigator) {
         route == Routes.TASKS -> TasksScreen(nav)
         route == Routes.TOOLS -> ToolsScreen(nav)
         route == Routes.SETTINGS -> SettingsScreen(nav, back)
-        route == Routes.GRADE -> GradeCalculatorScreen(nav, back)
+        route == Routes.GRADE -> GradeListScreen(nav, back)
         route == Routes.GPA_GOAL -> GpaGoalScreen(back)
         route == Routes.GRADE_CONVERTER -> GradeConverterScreen(nav, back)
         route == Routes.GRADE_SCALE -> GradeScaleScreen(back)
@@ -161,9 +193,12 @@ private fun Screen(route: String, nav: Navigator) {
         route == Routes.UNITS -> UnitConverterScreen(back)
         route == Routes.PERCENT -> PercentageScreen(back)
         route == Routes.NOTES -> NotesScreen(nav, back)
+        route == Routes.SEARCH -> SearchScreen(nav, back)
         route.startsWith("note/") -> NoteEditorScreen(route.removePrefix("note/"), back)
         route.startsWith("task/") -> TaskEditorScreen(route.removePrefix("task/"), nav, back)
+        route.startsWith("grade/") -> GradeCalculatorScreen(route.removePrefix("grade/"), nav, back)
         route.startsWith("semester/") -> SemesterScreen(route.removePrefix("semester/"), back)
+        route.startsWith("dev/") -> DevToolsScreen(route.removePrefix("dev/").toIntOrNull() ?: 0, back)
         route.startsWith("random/") -> RandomizerScreen(route.removePrefix("random/").toIntOrNull() ?: 0, back)
         else -> HomeScreen(nav)
     }

@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Student Toolkit</string>
+    <string name="app_name" translatable="false">Student Toolkit</string>
+    <!-- Shown by the launcher and system UI, which follow the phone's language. In-app texts follow Settings. -->
+    <string name="widget_deadlines_label">Deadlines</string>
+    <string name="widget_deadlines_title">Deadlines</string>
+    <string name="widget_deadlines_empty">No upcoming deadlines</string>
+    <string name="widget_deadlines_description">Your next three deadlines at a glance</string>
+    <string name="tile_focus_label" translatable="false">Pomodoro</string>
 </resources>

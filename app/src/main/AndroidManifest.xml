@@ -44,6 +44,34 @@
             </intent-filter>
         </receiver>
 
+        <!-- Home screen widget with the next deadlines. Exported because the launcher binds to it. -->
+        <receiver
+            android:name=".widget.DeadlinesWidget"
+            android:exported="true"
+            android:label="@string/widget_deadlines_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_deadlines_info" />
+        </receiver>
+
+        <!-- Quick Settings tile for the Pomodoro. Only the system UI can bind to it. -->
+        <service
+            android:name=".notify.FocusTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_focus"
+            android:label="@string/tile_focus_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.quicksettings.TOGGLEABLE_TILE"
+                android:value="true" />
+        </service>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

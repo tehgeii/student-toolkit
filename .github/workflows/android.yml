@@ -35,6 +35,13 @@ jobs:
       - name: Unit tests
         run: ./gradlew --no-daemon testDebugUnitTest
 
+      - name: Android Lint
+        run: ./gradlew --no-daemon lintDebug
+
+      - name: Lint report
+        if: always()
+        run: cat app/build/reports/lint-results.txt 2>/dev/null || echo "No lint report"
+
       - name: Build debug and release APKs
         run: ./gradlew --no-daemon assembleDebug assembleRelease
 
@@ -45,12 +52,13 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
-      - name: Upload test reports
-        if: failure()
+      - name: Upload test and lint reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports
-          path: app/build/reports/tests/
+          name: reports
+          path: app/build/reports/
+          if-no-files-found: ignore
 
   release:
     name: Signed release APK
@@ -95,12 +103,22 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
           echo "ST_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
 
-      - name: Build signed release APK
+      - name: Build signed release APK and Play Store bundle
         env:
           ST_KEYSTORE_PASSWORD: ${{ secrets.ST_KEYSTORE_PASSWORD }}
           ST_KEY_ALIAS: ${{ secrets.ST_KEY_ALIAS }}
           ST_KEY_PASSWORD: ${{ secrets.ST_KEY_PASSWORD }}
-        run: ./gradlew --no-daemon assembleRelease
+        run: ./gradlew --no-daemon assembleRelease bundleRelease
+
+      # The .aab is only for uploading to Google Play, so it is kept as a workflow artifact
+      # (visible to the repository owner) instead of next to the APK on the public release page.
+      - name: Upload Play Store bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: StudentToolkit-${{ env.TAG }}-play-bundle
+          path: app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+          retention-days: 90
 
       - name: Verify signature and prepare release files
         run: |

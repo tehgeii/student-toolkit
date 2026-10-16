@@ -2,4 +2,8 @@
 <resources>
     <color name="brand">#4F46E5</color>
     <color name="window_background">#FEF7FF</color>
+    <color name="widget_background">#F3EDF7</color>
+    <color name="widget_accent">#4F46E5</color>
+    <color name="widget_text">#1D1B20</color>
+    <color name="widget_subtext">#49454F</color>
 </resources>

@@ -136,8 +136,40 @@ class AcademicRepository(private val repo: JsonRepository<AcademicData>) {
         if (semester(semester.id) == null) repo.update { it.copy(semesters = it.semesters + semester) }
     }
 
-    fun updateDraft(transform: (GradeDraft) -> GradeDraft) {
-        repo.update { it.copy(draft = transform(it.draft)) }
+    fun calculation(id: String): GradeCalc? = repo.value.calculations.firstOrNull { it.id == id }
+
+    fun createCalculation(course: String, indonesian: Boolean): GradeCalc {
+        val calc = GradeCalc(
+            id = newId(),
+            course = course,
+            rows = GradeTemplate.rows(indonesian),
+            updatedAt = System.currentTimeMillis(),
+        )
+        repo.update { it.copy(calculations = it.calculations + calc) }
+        return calc
+    }
+
+    fun updateCalculation(id: String, transform: (GradeCalc) -> GradeCalc) {
+        repo.update { data ->
+            data.copy(calculations = data.calculations.map {
+                if (it.id == id) transform(it).copy(updatedAt = System.currentTimeMillis()) else it
+            })
+        }
+    }
+
+    fun deleteCalculation(id: String): GradeCalc? {
+        val old = calculation(id) ?: return null
+        repo.update { data -> data.copy(calculations = data.calculations.filterNot { it.id == id }) }
+        return old
+    }
+
+    fun restoreCalculation(calc: GradeCalc) {
+        if (calculation(calc.id) == null) repo.update { it.copy(calculations = it.calculations + calc) }
+    }
+
+    /** Removes a calculation that was created but never filled in. */
+    fun removeCalculationIfUntouched(id: String) {
+        if (calculation(id)?.isUntouched == true) deleteCalculation(id)
     }
 
     fun replaceAll(data: AcademicData) = repo.set(data)

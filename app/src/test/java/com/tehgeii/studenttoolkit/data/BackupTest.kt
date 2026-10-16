@@ -22,13 +22,20 @@ class BackupTest {
             theme = ThemeMode.DARK,
             language = AppLanguage.INDONESIAN,
             gpaDecimals = 3,
+            scoreDecimals = 1,
             gradeScale = GradeScale(listOf(GradeBand("A", 80.0, 4.0), GradeBand("B", 65.0, 3.0), GradeBand("C", 0.0, 2.0))),
             profile = Profile(name = "Dafi"),
         ),
         academic = AcademicData(
             semesters = listOf(
-                Semester("s1", "Semester 1", listOf(Course("c1", "Basis Data", 3, "A")), updatedAt = 5),
+                Semester("s1", "Semester 1", listOf(Course("c1", "Basis Data", 3, "A", code = "IF201", lecturer = "Bu Rina")), updatedAt = 5),
                 Semester("s2", "Semester 2", manualGpa = 3.7, manualCredits = 22, useManual = true, updatedAt = 6),
+            ),
+            calculations = listOf(
+                GradeCalc(
+                    id = "g1", course = "Basis Data", targetLetter = "A", updatedAt = 7,
+                    rows = listOf(GradeDraftRow("r1", "UTS", "40", "82.5"), GradeDraftRow("r2", "UAS", "60", "")),
+                ),
             ),
         ),
         tasks = listOf(
@@ -46,10 +53,35 @@ class BackupTest {
     fun roundTrip() {
         val text = BackupCodec.encode(sample, "0.9.0", 123)
         val file = BackupCodec.decode(text)
-        assertEquals(1, file.schemaVersion)
+        assertEquals(BackupCodec.SCHEMA_VERSION, file.schemaVersion)
         assertEquals("0.9.0", file.appVersion)
         assertEquals(123L, file.exportedAt)
-        assertEquals(sample.copy(academic = sample.academic.copy(draft = file.data.academic.draft)), file.data)
+        assertEquals(sample, file.data)
+    }
+
+    @Test
+    fun migratesSchemaOneDraftToSavedCalculation() {
+        val draft = JSONObject()
+            .put("course", "Statistika")
+            .put("rows", org.json.JSONArray().put(JSONObject().put("id", "r1").put("name", "UTS").put("weight", "50").put("score", "70")))
+        val v1 = JSONObject()
+            .put("app", "StudentToolkit")
+            .put("schemaVersion", 1)
+            .put("academic", JSONObject().put("semesters", org.json.JSONArray()).put("draft", draft))
+        val file = BackupCodec.decode(v1.toString())
+        assertEquals(1, file.schemaVersion)
+        val calc = file.data.academic.calculations.single()
+        assertEquals("Statistika", calc.course)
+        assertEquals(listOf(GradeDraftRow("r1", "UTS", "50", "70")), calc.rows)
+    }
+
+    @Test
+    fun untouchedSchemaOneDraftIsDropped() {
+        val draft = JSONObject().put("course", "")
+            .put("rows", org.json.JSONArray().put(JSONObject().put("id", "r1").put("name", "UTS").put("weight", "50").put("score", "")))
+        val v1 = JSONObject().put("app", "StudentToolkit").put("schemaVersion", 1)
+            .put("academic", JSONObject().put("draft", draft))
+        assertTrue(BackupCodec.decode(v1.toString()).data.academic.calculations.isEmpty())
     }
 
     private fun assertRejected(text: String, reason: BackupError) {
@@ -95,6 +127,7 @@ class BackupTest {
         assertEquals(sample.tasks, twice.tasks)
         assertEquals(sample.notes, twice.notes)
         assertEquals(sample.academic.semesters, twice.academic.semesters)
+        assertEquals(sample.academic.calculations, twice.academic.calculations)
         assertEquals(sample.focus, twice.focus)
     }
 

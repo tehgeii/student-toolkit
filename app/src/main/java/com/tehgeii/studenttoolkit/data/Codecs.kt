@@ -145,6 +145,10 @@ object Codecs {
         .put("name", s.name)
         .put("courses", s.courses.toJsonArray {
             JSONObject().put("id", it.id).put("name", it.name).put("credits", it.credits).put("grade", it.grade)
+                .apply {
+                    if (it.code.isNotBlank()) put("code", it.code)
+                    if (it.lecturer.isNotBlank()) put("lecturer", it.lecturer)
+                }
         })
         .putIfNotNull("manualGpa", s.manualGpa)
         .putIfNotNull("manualCredits", s.manualCredits)
@@ -160,6 +164,8 @@ object Codecs {
                 name = it.text("name"),
                 credits = (it.intOrNull("credits") ?: 0).coerceIn(0, 99),
                 grade = it.text("grade"),
+                code = it.text("code").take(30),
+                lecturer = it.text("lecturer").take(80),
             )
         },
         manualGpa = o.doubleOrNull("manualGpa"),
@@ -168,29 +174,53 @@ object Codecs {
         updatedAt = o.longOrNull("updatedAt") ?: 0L,
     )
 
-    fun encodeDraft(d: GradeDraft): JSONObject = JSONObject()
-        .put("course", d.course)
-        .put("rows", d.rows.toJsonArray {
-            JSONObject().put("id", it.id).put("name", it.name).put("weight", it.weight).put("score", it.score)
-        })
+    private fun encodeRows(rows: List<GradeDraftRow>): JSONArray = rows.toJsonArray {
+        JSONObject().put("id", it.id).put("name", it.name).put("weight", it.weight).put("score", it.score)
+    }
 
-    fun decodeDraft(o: JSONObject?): GradeDraft {
-        if (o == null) return GradeDraft()
-        val rows = o.optJSONArray("rows").decodeEach(strict = false) {
-            GradeDraftRow(it.requireString("id"), it.text("name"), it.text("weight").take(12), it.text("score").take(12))
-        }
-        return GradeDraft(o.text("course"), rows)
+    private fun decodeRows(array: JSONArray?, strict: Boolean): List<GradeDraftRow> = array.decodeEach(strict) {
+        GradeDraftRow(it.requireString("id"), it.text("name"), it.text("weight").take(12), it.text("score").take(12))
+    }
+
+    fun encodeCalc(c: GradeCalc): JSONObject = JSONObject()
+        .put("id", c.id)
+        .put("course", c.course)
+        .put("rows", encodeRows(c.rows))
+        .put("targetLetter", c.targetLetter)
+        .put("updatedAt", c.updatedAt)
+
+    fun decodeCalc(o: JSONObject, strict: Boolean = false): GradeCalc = GradeCalc(
+        id = o.requireString("id"),
+        course = o.text("course").take(120),
+        rows = decodeRows(o.optJSONArray("rows"), strict),
+        targetLetter = o.text("targetLetter").take(4),
+        updatedAt = o.longOrNull("updatedAt") ?: 0L,
+    )
+
+    /**
+     * Schema v1 had a single grade-calculator "draft". It becomes the first saved calculation,
+     * unless it was never used (no course and no scores).
+     */
+    fun legacyDraftToCalculations(draft: JSONObject?): JSONArray {
+        val out = JSONArray()
+        if (draft == null) return out
+        val rows = decodeRows(draft.optJSONArray("rows"), strict = false)
+        val calc = GradeCalc(id = "legacy-draft", course = draft.text("course"), rows = rows)
+        if (rows.isNotEmpty() && !calc.isUntouched) out.put(encodeCalc(calc))
+        return out
     }
 
     fun encodeAcademic(a: AcademicData): JSONObject = JSONObject()
         .put("semesters", a.semesters.toJsonArray(::encodeSemester))
-        .put("draft", encodeDraft(a.draft))
+        .put("calculations", a.calculations.toJsonArray(::encodeCalc))
 
     fun decodeAcademic(o: JSONObject?, strict: Boolean = false): AcademicData {
         if (o == null) return AcademicData()
+        // Files written by v0.10 and older still have the single "draft".
+        val calculations = o.optJSONArray("calculations") ?: legacyDraftToCalculations(o.optJSONObject("draft"))
         return AcademicData(
             semesters = o.optJSONArray("semesters").decodeEach(strict) { decodeSemester(it, strict) }.distinctBy { it.id },
-            draft = decodeDraft(o.optJSONObject("draft")),
+            calculations = calculations.decodeEach(strict) { decodeCalc(it, strict) }.distinctBy { it.id },
         )
     }
 
@@ -239,6 +269,7 @@ object Codecs {
         .put("language", s.language.name)
         .put("dynamicColor", s.dynamicColor)
         .put("gpaDecimals", s.gpaDecimals)
+        .put("scoreDecimals", s.scoreDecimals)
         .put("gradeScale", encodeScale(s.gradeScale))
         .put("defaultReminders", s.defaultReminders.toJsonArray { it })
         .put("taskSort", s.taskSort.name)
@@ -261,6 +292,7 @@ object Codecs {
             language = enumOf(o.opt("language") as? String, defaults.language),
             dynamicColor = o.bool("dynamicColor", defaults.dynamicColor),
             gpaDecimals = (o.intOrNull("gpaDecimals") ?: 2).coerceIn(2, 3),
+            scoreDecimals = (o.intOrNull("scoreDecimals") ?: 2).coerceIn(1, 3),
             gradeScale = runCatching { decodeScale(o.optJSONArray("gradeScale")) }.getOrNull() ?: defaults.gradeScale,
             defaultReminders = if (reminders == null) defaults.defaultReminders else (0 until reminders.length())
                 .mapNotNull { (reminders.opt(it) as? Number)?.toInt() }

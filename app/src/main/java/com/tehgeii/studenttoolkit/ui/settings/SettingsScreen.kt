@@ -30,6 +30,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,6 +49,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tehgeii.studenttoolkit.AppContainer
 import com.tehgeii.studenttoolkit.BuildConfig
+import com.tehgeii.studenttoolkit.CrashReporter
 import com.tehgeii.studenttoolkit.data.AppSettings
 import com.tehgeii.studenttoolkit.data.BackupException
 import com.tehgeii.studenttoolkit.data.BackupFile
@@ -92,6 +94,8 @@ class SettingsViewModel(private val repo: SettingsRepository) : ViewModel() {
 
 private const val GITHUB_URL = "https://github.com/tehgeii/student-toolkit"
 private const val PORTFOLIO_URL = "https://tgopremium.my.id"
+private const val RELEASES_URL = "https://github.com/tehgeii/student-toolkit/releases/latest"
+private const val PRIVACY_URL = "https://github.com/tehgeii/student-toolkit/blob/main/docs/PRIVACY.md"
 
 @Composable
 fun SettingsScreen(nav: Navigator, onBack: () -> Unit) {
@@ -169,6 +173,8 @@ fun SettingsScreen(nav: Navigator, onBack: () -> Unit) {
             }
             Text(t("GPA decimal places", "Jumlah desimal IPK"), style = MaterialTheme.typography.bodyMedium)
             Segmented(listOf(2, 3), settings.gpaDecimals, { "$it " + t("decimals", "desimal") }, { d -> vm.update { it.copy(gpaDecimals = d) } })
+            Text(t("Score decimal places (grade calculator)", "Jumlah desimal skor (kalkulator nilai)"), style = MaterialTheme.typography.bodyMedium)
+            Segmented(listOf(1, 2, 3), settings.scoreDecimals, { "$it " + t("decimals", "desimal") }, { d -> vm.update { it.copy(scoreDecimals = d) } })
 
             SectionTitle(t("Notifications", "Notifikasi"))
             val (notificationsAllowed, requestNotifications) = rememberNotificationsAllowed()
@@ -227,6 +233,8 @@ fun SettingsScreen(nav: Navigator, onBack: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
             ) { Text(t("Import backup", "Impor backup")) }
 
+            CrashReportSection(t)
+
             SectionTitle(t("About", "Tentang"))
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -243,9 +251,21 @@ fun SettingsScreen(nav: Navigator, onBack: () -> Unit) {
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    OutlinedButton(onClick = { Platform.openUrl(context, RELEASES_URL) }, modifier = Modifier.fillMaxWidth()) {
+                        Text(t("Check for updates", "Cek pembaruan"))
+                    }
+                    Text(
+                        t(
+                            "Opens the latest release on GitHub. If its version is newer than ${BuildConfig.VERSION_NAME}, download the APK and install it over this one — your data stays.",
+                            "Membuka rilis terbaru di GitHub. Kalau versinya lebih baru dari ${BuildConfig.VERSION_NAME}, unduh APK-nya lalu pasang di atas versi ini — datamu tetap aman.",
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TextButton(onClick = { Platform.openUrl(context, GITHUB_URL) }) { Text("GitHub") }
                         TextButton(onClick = { Platform.openUrl(context, PORTFOLIO_URL) }) { Text(t("Portfolio", "Portofolio")) }
+                        TextButton(onClick = { Platform.openUrl(context, PRIVACY_URL) }) { Text(t("Privacy policy", "Kebijakan privasi")) }
                         TextButton(onClick = { showLicenses = true }) { Text(t("Open-source licenses", "Lisensi open source")) }
                     }
                 }
@@ -281,8 +301,8 @@ fun SettingsScreen(nav: Navigator, onBack: () -> Unit) {
                     t("Backup schema v${file.schemaVersion} · app ${file.appVersion}", "Skema backup v${file.schemaVersion} · aplikasi ${file.appVersion}") +
                         exported + "\n\n" +
                         t(
-                            "Contains ${data.tasks.size} tasks, ${data.notes.size} notes and ${data.academic.semesters.size} semesters.",
-                            "Berisi ${data.tasks.size} tugas, ${data.notes.size} catatan, dan ${data.academic.semesters.size} semester.",
+                            "Contains ${data.tasks.size} tasks, ${data.notes.size} notes, ${data.academic.semesters.size} semesters and ${data.academic.calculations.size} grade calculations.",
+                            "Berisi ${data.tasks.size} tugas, ${data.notes.size} catatan, ${data.academic.semesters.size} semester, dan ${data.academic.calculations.size} perhitungan nilai.",
                         ) + "\n\n" +
                         t(
                             "Merge adds what you don't have yet and keeps the newest version of each item.\n" +
@@ -355,6 +375,49 @@ private fun ProfileFields(profile: Profile, t: Lang, onChange: (Profile) -> Unit
 }
 
 /** Third-party components shipped inside the app and the notices their licenses require. */
+/** Shows the last crash report (kept on the phone only) so it can be shared with the developer. */
+@Composable
+private fun CrashReportSection(t: Lang) {
+    val context = LocalContext.current
+    var report by remember { mutableStateOf<String?>(null) }
+    var showReport by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) { report = withContext(Dispatchers.IO) { CrashReporter.report(context) } }
+    val text = report ?: return
+
+    SectionTitle(t("Crash report", "Laporan crash"))
+    InfoCard(
+        t(
+            "The app closed unexpectedly once. The report has no tasks, notes or grades — only versions, device model and the error. Share it if you want to report the bug.",
+            "Aplikasi pernah tertutup mendadak. Laporannya tidak berisi tugas, catatan, atau nilai — hanya versi, model HP, dan pesan error. Bagikan kalau ingin melaporkan bug.",
+        ),
+        emoji = "🐞",
+    )
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedButton(onClick = { showReport = true }) { Text(t("View", "Lihat")) }
+        OutlinedButton(onClick = { Platform.shareText(context, text, t("Share crash report", "Bagikan laporan crash")) }) { Text(t("Share", "Bagikan")) }
+        TextButton(onClick = {
+            CrashReporter.delete(context)
+            report = null
+        }) { Text(t("Delete", "Hapus")) }
+    }
+    if (showReport) {
+        AlertDialog(
+            onDismissRequest = { showReport = false },
+            title = { Text(t("Crash report", "Laporan crash")) },
+            text = {
+                Column(
+                    Modifier
+                        .heightIn(max = 420.dp)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    Text(text, style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            confirmButton = { TextButton(onClick = { showReport = false }) { Text(t("Close", "Tutup")) } },
+        )
+    }
+}
+
 private const val OPEN_SOURCE_NOTICES = """Student Toolkit uses these open-source components:
 
 • Jetpack Compose, AndroidX Activity, Lifecycle and Core — © The Android Open Source Project. Apache License 2.0.

@@ -24,11 +24,14 @@ object Routes {
     const val PERCENT = "percent"
     const val NOTES = "notes"
     const val TASK_NEW = "task/new"
+    const val SEARCH = "search"
 
     fun task(id: String) = "task/$id"
     fun note(id: String) = "note/$id"
     fun semester(id: String) = "semester/$id"
+    fun grade(id: String) = "grade/$id"
     fun randomizer(tab: Int = 0) = "random/$tab"
+    fun devTools(tab: Int = 0) = "dev/$tab"
 
     val tabs = listOf(HOME, ACADEMIC, TASKS, TOOLS)
 }
@@ -81,17 +84,18 @@ class Navigator(initial: List<String>) {
     }
 
     /**
-     * Opens a route coming from a notification on top of the matching tab. Only routes the app's own
-     * notifications use are accepted; anything else another app might send is ignored.
+     * Opens a route coming from a notification or the widget on top of the matching tab. Only routes the
+     * app's own notifications and widget use are accepted; anything else another app might send is ignored.
      */
     fun openExternal(route: String) {
         val root = when {
+            route == Routes.TASKS -> Routes.TASKS
             Regex("^task/[A-Za-z0-9-]{1,64}$").matches(route) -> Routes.TASKS
             route == Routes.POMODORO || route == Routes.TIMER -> Routes.TOOLS
             else -> return
         }
         selectTab(root)
-        stack.add(route)
+        if (route != root) stack.add(route)
     }
 }
 
