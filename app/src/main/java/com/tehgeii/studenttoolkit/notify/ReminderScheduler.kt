@@ -4,7 +4,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import com.tehgeii.studenttoolkit.data.TaskObserver
 import com.tehgeii.studenttoolkit.domain.tasks.Task
 import com.tehgeii.studenttoolkit.i18n.Lang
@@ -58,5 +58,5 @@ class ReminderScheduler(private val context: Context, private val lang: () -> La
     private fun baseIntent(taskId: String, minutes: Int): Intent =
         Intent(context, AlarmReceiver::class.java)
             .setAction(AlarmReceiver.ACTION_TASK_REMINDER)
-            .setData(Uri.parse("studenttoolkit://reminder/$taskId/$minutes"))
+            .setData("studenttoolkit://reminder/$taskId/$minutes".toUri())
 }

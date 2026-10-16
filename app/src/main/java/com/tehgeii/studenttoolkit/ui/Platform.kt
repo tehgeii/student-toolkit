@@ -6,7 +6,6 @@ import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.os.PersistableBundle
 import android.widget.Toast
@@ -15,6 +14,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import com.tehgeii.studenttoolkit.AppContainer
 import com.tehgeii.studenttoolkit.StudentToolkitApp
 import com.tehgeii.studenttoolkit.i18n.Lang
@@ -76,7 +76,7 @@ object Platform {
     }
 
     fun openUrl(context: Context, url: String) {
-        startSafely(context, Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        startSafely(context, Intent(Intent.ACTION_VIEW, url.toUri()))
     }
 
     fun startSafely(context: Context, intent: Intent) {

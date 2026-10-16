@@ -36,13 +36,11 @@ class DeadlinesWidget : AppWidgetProvider() {
         private var pending: Runnable? = null
 
         /** Redraws placed widgets shortly after a change; many changes in a row cause one redraw. */
+        @Synchronized
         fun requestRefresh(context: Context) {
             val app = context.applicationContext
             pending?.let(handler::removeCallbacks)
-            val task = Runnable {
-                pending = null
-                refresh(app)
-            }
+            val task = Runnable { refresh(app) }
             pending = task
             handler.postDelayed(task, 400)
         }
@@ -85,6 +83,8 @@ class DeadlinesWidget : AppWidgetProvider() {
 
         private fun open(context: Context, route: String, requestCode: Int): PendingIntent {
             val intent = Intent(context, MainActivity::class.java).apply {
+                // Own action, so these never share a PendingIntent with a notification's.
+                action = ACTION_OPEN
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                 putExtra(MainActivity.EXTRA_ROUTE, route)
             }
@@ -94,5 +94,6 @@ class DeadlinesWidget : AppWidgetProvider() {
         }
 
         private const val REQUEST_BASE = 7_100
+        private const val ACTION_OPEN = "com.tehgeii.studenttoolkit.action.WIDGET_OPEN"
     }
 }

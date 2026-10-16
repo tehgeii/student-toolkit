@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Deadline, Pomodoro and timer alerts (asked for in context, only when a feature needs it). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -13,12 +14,14 @@
     <application
         android:name=".StudentToolkitApp"
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.StudentToolkit">
+        android:theme="@style/Theme.StudentToolkit"
+        tools:targetApi="33">
 
         <activity
             android:name=".MainActivity"

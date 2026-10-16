@@ -4,9 +4,10 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.SystemClock
 import android.provider.Settings
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import com.tehgeii.studenttoolkit.core.Fmt
 import com.tehgeii.studenttoolkit.data.FocusRepository
 import com.tehgeii.studenttoolkit.domain.focus.Countdown
@@ -136,7 +137,7 @@ class FocusEngine(private val context: Context, private val stats: FocusReposito
     private fun syncAlarm(kind: String, countdown: Countdown) {
         val intent = Intent(context, AlarmReceiver::class.java)
             .setAction(AlarmReceiver.ACTION_FOCUS_DONE)
-            .setData(Uri.parse("studenttoolkit://focus/$kind"))
+            .setData("studenttoolkit://focus/$kind".toUri())
         val operation = PendingIntent.getBroadcast(
             context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
@@ -180,14 +181,14 @@ class FocusEngine(private val context: Context, private val stats: FocusReposito
             .put("accumulated", s.accumulatedMs)
             .put("laps", JSONArray().also { array -> s.laps.forEach { array.put(it) } })
         s.startedAt?.let { stopwatchJson.put("startedAt", it) }
-        prefs.edit()
-            .putString(KEY_POMODORO, pomodoroJson.toString())
-            .putString(KEY_TIMER, countdownJson(_timer.value).toString())
-            .putString(KEY_STOPWATCH, stopwatchJson.toString())
-            .putLong(KEY_CLOCK_ELAPSED, now())
-            .putLong(KEY_CLOCK_WALL, System.currentTimeMillis())
-            .putInt(KEY_BOOT, bootCount())
-            .apply()
+        prefs.edit {
+            putString(KEY_POMODORO, pomodoroJson.toString())
+            putString(KEY_TIMER, countdownJson(_timer.value).toString())
+            putString(KEY_STOPWATCH, stopwatchJson.toString())
+            putLong(KEY_CLOCK_ELAPSED, now())
+            putLong(KEY_CLOCK_WALL, System.currentTimeMillis())
+            putInt(KEY_BOOT, bootCount())
+        }
     }
 
     private fun countdownJson(c: Countdown): JSONObject = JSONObject()

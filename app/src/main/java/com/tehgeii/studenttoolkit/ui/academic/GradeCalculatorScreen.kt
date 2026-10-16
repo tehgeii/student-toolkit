@@ -2,6 +2,7 @@
 
 package com.tehgeii.studenttoolkit.ui.academic
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -41,7 +42,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -207,7 +207,7 @@ private fun CoursePickerDialog(options: List<CourseOption>, onDismiss: () -> Uni
 fun GradeCalculatorScreen(id: String, nav: Navigator, onBack: () -> Unit) {
     val t = LocalLang.current
     val vm = academicViewModel()
-    val activity = LocalContext.current as? android.app.Activity
+    val activity = LocalActivity.current
     // A calculation opened by accident and left empty is removed again (not on rotation).
     DisposableEffect(id) {
         onDispose { if (activity?.isChangingConfigurations != true) vm.removeCalculationIfUntouched(id) }

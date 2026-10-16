@@ -3,6 +3,7 @@
 package com.tehgeii.studenttoolkit.ui.academic
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -33,7 +34,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
@@ -216,7 +216,7 @@ fun ToolRow(emoji: String, title: String, subtitle: String, onClick: () -> Unit)
 fun SemesterScreen(id: String, onBack: () -> Unit) {
     val t = LocalLang.current
     val vm = academicViewModel()
-    val activity = LocalContext.current as? android.app.Activity
+    val activity = LocalActivity.current
     // A semester that was added but never filled in is removed again when the screen is left
     // (not on rotation), so tapping "Add" by accident leaves no empty entries behind.
     DisposableEffect(id) {

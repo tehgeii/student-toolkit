@@ -74,8 +74,6 @@ android {
         // Runs on CI for every push: errors fail the build, warnings are listed in the report.
         abortOnError = true
         checkReleaseBuilds = false
-        textReport = true
-        textOutput = file("build/reports/lint-results.txt")
         // Version-update reminders are handled by hand; targetSdk is raised only after testing on the new Android.
         disable += setOf("GradleDependency", "AndroidGradlePluginVersion", "NewerVersionAvailable", "OldTargetApi")
     }

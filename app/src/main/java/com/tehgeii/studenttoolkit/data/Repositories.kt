@@ -1,6 +1,7 @@
 package com.tehgeii.studenttoolkit.data
 
 import android.content.Context
+import androidx.core.content.edit
 import com.tehgeii.studenttoolkit.core.newId
 import com.tehgeii.studenttoolkit.domain.academic.Semester
 import com.tehgeii.studenttoolkit.domain.focus.DayFocus
@@ -208,7 +209,7 @@ class SettingsRepository(context: Context) {
 
     fun update(transform: (AppSettings) -> AppSettings) {
         _state.update(transform)
-        prefs.edit().putString(KEY, Codecs.encodeSettings(_state.value).toString()).apply()
+        prefs.edit { putString(KEY, Codecs.encodeSettings(_state.value).toString()) }
     }
 
     private companion object {

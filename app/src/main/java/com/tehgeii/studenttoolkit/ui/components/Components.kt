@@ -211,7 +211,7 @@ fun TextInput(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    modifier: Modifier = Modifier.fillMaxWidth(),
+    modifier: Modifier = Modifier,
     singleLine: Boolean = true,
     minLines: Int = 1,
     placeholder: String? = null,
@@ -231,7 +231,7 @@ fun TextInput(
         singleLine = singleLine,
         minLines = minLines,
         keyboardOptions = KeyboardOptions(capitalization = capitalization, keyboardType = keyboardType, imeAction = imeAction),
-        modifier = modifier,
+        modifier = modifier.fillMaxWidth(),
     )
 }
 

@@ -35,6 +35,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tehgeii.studenttoolkit.domain.classroom.AssignRule
@@ -73,12 +74,12 @@ class RandomizerViewModel(private val prefs: SharedPreferences) : ViewModel() {
 
     fun updateNames(text: String) {
         namesText = text
-        prefs.edit().putString(KEY_NAMES, text).apply()
+        prefs.edit { putString(KEY_NAMES, text) }
     }
 
     fun updateTasks(text: String) {
         tasksText = text
-        prefs.edit().putString(KEY_TASKS, text).apply()
+        prefs.edit { putString(KEY_TASKS, text) }
     }
 
     fun groupMode(): GroupMode? {

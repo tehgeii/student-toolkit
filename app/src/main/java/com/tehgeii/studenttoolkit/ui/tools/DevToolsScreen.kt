@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
@@ -240,7 +240,7 @@ private fun ColorTool(t: Lang) {
     )
     listOf("R" to color.r, "G" to color.g, "B" to color.b).forEach { (channel, value) ->
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("$channel $value", fontFamily = FontFamily.Monospace, modifier = Modifier.size(width = 64.dp, height = 24.dp))
+            Text("$channel $value", fontFamily = FontFamily.Monospace, modifier = Modifier.widthIn(min = 64.dp))
             Slider(
                 value = value.toFloat(),
                 onValueChange = { v ->
